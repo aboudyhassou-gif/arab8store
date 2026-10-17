@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>لوحة التحكم | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="css/style.css?v=29">
+<style>
+  body{ padding-bottom:0; }
+  .admin-section{ display:none; }
+  .admin-section.active{ display:block; }
+</style>
+</head>
+<body>
+
+<!-- ===== شاشة دخول الأدمن ===== -->
+<div id="adminLoginScreen" class="auth-shell">
+  <div class="auth-top">
+    <div class="auth-logo"><div class="token-badge" style="--size:46px;"><i class="fa-solid fa-user-shield"></i></div></div>
+    <div class="auth-title">دخول لوحة التحكم</div>
+    <div class="auth-sub">هاي الصفحة للمشرفين فقط</div>
+  </div>
+  <div class="auth-card">
+    <form onsubmit="return adminLogin(event)">
+      <div class="field">
+        <label>كلمة مرور الأدمن</label>
+        <div class="input-wrap">
+          <input type="password" id="adminPasswordInput" placeholder="••••••••" required>
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <div class="field-error" id="adminLoginError"></div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-10" id="adminLoginBtn"><i class="fa-solid fa-right-to-bracket"></i> دخول</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== لوحة التحكم (تظهر بعد تسجيل الدخول فقط) ===== -->
+<div id="adminPanelRoot" style="display:none;">
+
+<div id="adminOverlay" class="overlay" onclick="toggleSidebar(false)"></div>
+<input type="file" id="globalImageInput" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" style="display:none;">
+
+<div class="admin-shell">
+  <!-- ===== القائمة الجانبية ===== -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="logo"><div class="logo-word">ARAB <b>ADMIN</b></div></div>
+
+    <div class="admin-nav-group">عام</div>
+    <a href="#" class="admin-nav-item active" data-section="dashboard" onclick="goSection('dashboard', this); return false;"><i class="fa-solid fa-gauge-high"></i> الرئيسية</a>
+    <a href="#" class="admin-nav-item" data-section="orders" onclick="goSection('orders', this); return false;"><i class="fa-solid fa-bag-shopping"></i> الطلبات</a>
+    <a href="#" class="admin-nav-item" data-section="deposits" onclick="goSection('deposits', this); return false;"><i class="fa-solid fa-credit-card"></i> الإيداعات</a>
+    <a href="#" class="admin-nav-item" data-section="users" onclick="goSection('users', this); return false;"><i class="fa-solid fa-users"></i> المستخدمون</a>
+    <a href="#" class="admin-nav-item" data-section="discount-tiers" onclick="goSection('discount-tiers', this); return false;"><i class="fa-solid fa-crown"></i> المستويات</a>
+
+    <div class="admin-nav-group">المتجر</div>
+    <a href="#" class="admin-nav-item" data-section="products" onclick="goSection('products', this); return false;"><i class="fa-solid fa-box"></i> المنتجات</a>
+
+    <div class="admin-nav-group">الربط الخارجي</div>
+    <a href="#" class="admin-nav-item" data-section="smart-admin" onclick="goSection('smart-admin', this); return false;"><i class="fa-solid fa-server"></i> الإدارة الذكية</a>
+
+    <div class="admin-nav-group">النظام</div>
+    <a href="#" class="admin-nav-item" data-section="backup" onclick="goSection('backup', this); return false;"><i class="fa-solid fa-database"></i> النسخ الاحتياطي</a>
+    <a href="#" class="admin-nav-item" data-section="logs" onclick="goSection('logs', this); return false;"><i class="fa-solid fa-clipboard-list"></i> سجل الأدمن</a>
+
+    <div class="admin-nav-group">الذكاء الاصطناعي</div>
+    <a href="#" class="admin-nav-item" data-section="ai-agent" onclick="goSection('ai-agent', this); return false;"><i class="fa-solid fa-robot"></i> المساعد الذكي</a>
+    <a href="#" class="admin-nav-item" data-section="whatsapp" onclick="goSection('whatsapp', this); return false;"><i class="fa-brands fa-whatsapp"></i> بوت واتساب</a>
+
+    <div class="drawer-footer" style="margin-top:18px;">
+      <a href="/store.html"><i class="fa-solid fa-arrow-right-from-bracket"></i> الرجوع للموقع</a>
+      <a href="#" onclick="adminLogout(); return false;" style="color:var(--danger);"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج الأدمن</a>
+    </div>
+  </aside>
+
+  <!-- ===== المحتوى الرئيسي ===== -->
+  <main class="admin-main">
+    <div id="secLocked" style="display:none; text-align:center; padding:60px 20px;">
+      <div id="secLockedIcon" style="font-size:52px; margin-bottom:14px;">🔐</div>
+      <div id="secLockedTitle" style="font-size:16px; font-weight:800; margin-bottom:8px;"></div>
+      <div id="secLockedMsg" style="font-size:13px; color:var(--muted); line-height:2;">هذا القسم خاص بالمالك لأسباب أمنية<br>تواصل مع مالك المتجر لمنحك الصلاحية</div>
+      <button id="secLockedBtn" class="btn btn-primary" style="display:none; width:auto; padding:11px 26px; margin:16px auto 0;" onclick="adminLogout()">تسجيل خروج ودخول مجدداً</button>
+    </div>
+    <div class="admin-topbar">
+      <div class="flex items-center gap-8">
+        <button class="menu-btn hamburger-mobile" onclick="toggleSidebar(true)"><span></span><span></span><span></span></button>
+        <div class="admin-title" id="sectionTitle">الرئيسية</div>
+      </div>
+      <div class="flex items-center gap-8">
+        <div style="position:relative;">
+          <input type="text" id="adminGlobalSearch" placeholder="🔍 بحث شامل: طلب / مستخدم / إيداع..." oninput="adminGlobalSearch(this.value)" autocomplete="off"
+            style="padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); width:200px; font-size:11px;">
+          <div id="adminSearchPanel" style="display:none; position:absolute; left:0; top:44px; width:320px; max-height:380px; overflow-y:auto; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.4); z-index:60; padding:10px;"></div>
+        </div>
+        <div style="position:relative;">
+          <button class="icon-btn" onclick="toggleAdminAlerts()" style="width:36px; height:36px; font-size:14px;">
+            <i class="fa-solid fa-bell"></i>
+            <span class="badge-dot" id="adminAlertsBadge" style="display:none;">0</span>
+          </button>
+          <div id="adminAlertsPanel" style="display:none; position:absolute; left:0; top:44px; width:260px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.4); z-index:50; overflow:hidden;">
+            <div id="adminAlertsList"></div>
+          </div>
+        </div>
+        <div class="balance-pill"><i class="fa-solid fa-user-shield"></i><span>المشرف الرئيسي</span></div>
+      </div>
+    </div>
+
+    <!-- ========== 1) الرئيسية ========== -->
+    <section class="admin-section active" id="sec-dashboard">
+      <div id="ephemeralWarn" style="display:none; margin-bottom:12px; padding:12px 14px; border-radius:12px; background:rgba(255,176,32,.12); border:1px solid rgba(255,176,32,.5); font-size:12.5px; line-height:1.9;">
+        ⚠️ <b>التخزين مؤقت!</b> البيانات (المستخدمون والطلبات والمنتجات) ستُمسح مع كل إعادة نشر.
+        ثبّتها نهائياً: Vercel ← Storage ← Create ← Postgres ← Connect ثم Redeploy.
+      </div>
+      <div class="admin-grid">
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-users"></i> إجمالي المستخدمين</div><div class="val" id="kpiUsers">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-bag-shopping"></i> إجمالي الطلبات</div><div class="val" id="kpiOrders">—</div></div>
+        <div class="kpi-card gold"><div class="lbl"><i class="fa-solid fa-sack-dollar"></i> إجمالي الأرصدة بالنظام</div><div class="val" id="kpiBalance">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-right-left"></i> سعر الصرف الحالي</div><div class="val" id="kpiRate">—</div></div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3>📅 اليوم</h3></div>
+      <div class="admin-grid">
+        <div class="kpi-card green"><div class="lbl"><i class="fa-solid fa-chart-line"></i> إيرادات اليوم</div><div class="val" id="kpiTodaySales">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-cart-shopping"></i> مبيعات اليوم</div><div class="val" id="kpiTodayOrders">—</div></div>
+        <div class="kpi-card gold"><div class="lbl"><i class="fa-solid fa-money-bill-trend-up"></i> أرباح اليوم</div><div class="val" id="kpiTodayProfit">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-percent"></i> الهامش الربحي اليوم</div><div class="val" id="kpiTodayMargin">—</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>📣 بث إشعار فوري للمستخدمين</h3><span class="text-muted" id="pushSubCount" style="font-size:11px;">—</span></div>
+        <div class="field-hint" style="margin-bottom:10px;">يوصل <b>حتى والموقع مغلق</b> عند كل من فعّل الإشعارات (مستخدمون وضيوف). استخدمه لمنتج جديد، عرض، أو عودة منتج نافد.</div>
+        <div class="admin-fields-grid">
+          <div class="field"><label>العنوان</label><input type="text" id="pushTitle" placeholder="🎮 منتج جديد!" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>النص</label><input type="text" id="pushMessage" placeholder="وصل شحن فري فاير بسعر جديد ✨" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>الرابط عند الضغط</label><input type="text" id="pushUrl" value="/store.html" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary" style="width:auto; padding:11px 22px;" onclick="sendPushBroadcast(this)"><i class="fa-solid fa-tower-broadcast"></i> بث الآن</button>
+          <button class="btn-sm" onclick="loadPushStatus()"><i class="fa-solid fa-arrows-rotate"></i> تحديث العدد</button>
+        </div>
+        <div class="info-banner" style="margin-top:10px;">
+          <i class="fa-solid fa-bell"></i>
+          <div>تنبيهات الإدارة (طلب جديد، إيداع جديد…) <b>تصلك Push حتى والموقع مغلق</b> — فعّلها على هذا الجهاز:
+          <button class="btn-sm" style="margin-top:6px;" onclick="enableAdminPushUI()"><i class="fa-solid fa-bell"></i> تفعيل إشعارات الأدمن على هذا الجهاز</button></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>آخر الطلبات</h3><button class="btn-sm" onclick="goSection('orders', document.querySelector('[data-section=orders]'))">عرض الكل</button></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>المستخدم</th><th>المنتج</th><th>السعر</th><th>الحالة</th><th>الوقت</th></tr></thead>
+            <tbody id="dashOrdersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>طلبات إيداع بانتظار المراجعة</h3><button class="btn-sm" onclick="goSection('deposits', document.querySelector('[data-section=deposits]'))">عرض الكل</button></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>المستخدم</th><th>الطريقة</th><th>المبلغ</th><th>الكود</th><th></th></tr></thead>
+            <tbody id="dashDepositsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3><i class="fa-solid fa-sack-dollar"></i> الأرباح</h3></div>
+      <div class="panel">
+        <div class="panel-head"><h3>فلترة بالتاريخ</h3></div>
+        <div class="admin-fields-grid">
+          <div class="field"><label>من تاريخ</label><input type="date" id="profitsStart" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>إلى تاريخ</label><input type="date" id="profitsEnd" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button class="btn btn-primary" style="width:auto; padding:11px 22px;" onclick="loadProfits()"><i class="fa-solid fa-filter"></i> تطبيق الفلتر</button>
+          <button class="btn-sm" onclick="resetProfitsFilter()"><i class="fa-solid fa-rotate-left"></i> الكل (بدون فلتر)</button>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-bag-shopping"></i> عدد المبيعات المكتملة</div><div class="val" id="profitOrdersCount">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-dollar-sign"></i> إجمالي المبيعات</div><div class="val" id="profitSales">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-truck-fast"></i> إجمالي التكلفة</div><div class="val" id="profitCost">—</div></div>
+        <div class="kpi-card gold"><div class="lbl"><i class="fa-solid fa-sack-dollar"></i> صافي الربح</div><div class="val" id="profitNet">—</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>تفاصيل المبيعات والأرباح</h3></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>المصدر</th><th>المنتج</th><th>الفئة</th><th>سعر البيع $</th><th>التكلفة $</th><th>الربح $</th><th>التاريخ</th></tr></thead>
+            <tbody id="profitsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3><i class="fa-solid fa-gear"></i> إعدادات الموقع</h3></div>
+      <div class="panel">
+        <div class="panel-head"><h3>لوغو الموقع (يظهر بالشريط العلوي)</h3></div>
+        <div id="logoPreviewWrap" style="display:none; margin-bottom:12px;">
+          <img id="logoPreview" style="height:44px; border-radius:10px; border:1px solid var(--border); display:block;">
+        </div>
+        <button class="btn-sm" onclick="pickImage('logo', null)"><i class="fa-solid fa-camera"></i> رفع / تغيير اللوغو</button>
+        <button class="btn-sm danger" onclick="removeLogo()"><i class="fa-solid fa-trash"></i> إزالة اللوغو</button>
+        <div class="field-hint mt-10">الأفضل: صورة PNG شفافة مستطيلة (مثل 300×80 px). لو ما في لوغو رح يظهر النص الافتراضي "ARAB STORE".</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>🔔 شعار الإشعارات (يظهر مع كل إشعار يصل للمستخدم)</h3></div>
+        <div id="notifIconPreviewWrap" style="display:none; margin-bottom:12px;">
+          <img id="notifIconPreview" style="width:64px; height:64px; border-radius:16px; border:1px solid var(--border); display:block; object-fit:cover;">
+        </div>
+        <button class="btn-sm" onclick="pickImage('notif_icon', null)"><i class="fa-solid fa-camera"></i> رفع / تغيير شعار الإشعارات</button>
+        <button class="btn-sm danger" onclick="removeNotifIcon()"><i class="fa-solid fa-trash"></i> إزالة الشعار</button>
+        <div class="field-hint mt-10">هذه الصورة هي التي <b>تظهر بجانب كل إشعار</b> يصل لهاتف المستخدم حتى والموقع مغلق. الأفضل: صورة <b>مربعة</b> (مثلاً 512×512 px) بخلفية واضحة. بدون صورة مخصصة، يُستخدم شعار التطبيق ثم لوغو الموقع تلقائياً.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>📱 أيقونة التطبيق (لما المستخدم يضيف الموقع للشاشة الرئيسية)</h3></div>
+        <div id="appIconPreviewWrap" style="display:none; margin-bottom:12px;">
+          <img id="appIconPreview" style="width:64px; height:64px; border-radius:16px; border:1px solid var(--border); display:block; object-fit:cover;">
+        </div>
+        <button class="btn-sm" onclick="pickImage('app_icon', null)"><i class="fa-solid fa-camera"></i> رفع / تغيير الأيقونة</button>
+        <button class="btn-sm danger" onclick="removeAppIcon()"><i class="fa-solid fa-trash"></i> إزالة الأيقونة</button>
+        <div class="field-hint mt-10">لازم تكون صورة <b>مربعة</b> (مثلاً 512×512 px) عشان تظهر منيح كأيقونة تطبيق على شاشة الموبايل، متل أي متجر منافس عندو أيقونة مميزة. بدون أيقونة مخصصة، رح يستخدم نفس اللوغو تلقائياً.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>🖋️ لوغو المطوّر (تحت قائمة الـ3 نقاط فوق "برمجة وتصميم")</h3></div>
+        <div id="devLogoPreviewWrap" style="display:none; margin-bottom:12px;">
+          <img id="devLogoPreview" style="height:44px; border-radius:10px; border:1px solid var(--border); display:block;">
+        </div>
+        <button class="btn-sm" onclick="pickImage('dev_logo', null)"><i class="fa-solid fa-camera"></i> رفع / تغيير لوغو المطوّر</button>
+        <button class="btn-sm danger" onclick="removeDevLogo()"><i class="fa-solid fa-trash"></i> إزالة اللوغو</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>📲 تثبيت التطبيق (PWA)</h3></div>
+        <div class="field-hint" id="pwaHint" style="margin-bottom:10px;">اضغط الزر لتثبيت الموقع كتطبيق على جهازك.</div>
+        <button class="btn-sm" id="pwaInstallBtn" onclick="installPwa()"><i class="fa-solid fa-download"></i> تثبيت التطبيق الآن</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>سلايدر البانر الإعلاني (أعلى الصفحة الرئيسية)</h3><span class="text-muted" id="bannerCountHint" style="font-size:11px;">0 / 5 صور</span></div>
+        <div id="bannerPreviewGrid" style="display:flex; flex-wrap:wrap; margin-bottom:12px;"></div>
+        <button class="btn-sm" id="bannerAddBtn" onclick="pickImage('banner', null)"><i class="fa-solid fa-camera"></i> إضافة صورة للسلايدر</button>
+        <button class="btn-sm danger" onclick="clearAllBanners()"><i class="fa-solid fa-trash"></i> حذف الكل</button>
+        <div class="field-hint mt-10">يدعم حتى 5 صور تتبدّل تلقائياً بسلايدر. المقاس المثالي: عريض (نسبة تقريبية 16:8) عشان يظهر بأفضل شكل بدون قص.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>إعدادات المتجر</h3></div>
+        <div class="admin-fields-grid">
+          <div class="field"><label>سعر الصرف (1$ = ? ل.س)</label><input type="number" id="settingsRate" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>رسالة الترحيب</label><input type="text" id="settingsWelcome" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>يوزر الدعم</label><input type="text" id="settingsSupport" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row-reverse; justify-content:flex-end;">
+            <label for="settingsPopupEnabled" style="margin:0;">تفعيل نافذة ترحيب عند أول دخول للموقع</label>
+            <input type="checkbox" id="settingsPopupEnabled" style="width:18px; height:18px;">
+          </div>
+          <div class="field"><label>نص نافذة الترحيب</label><textarea id="settingsPopupText" rows="3" placeholder="مثال: اهلاً وسهلاً فيكم بموقعنا! تابعونا على قناتنا..." style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical;"></textarea></div>
+          <div class="field"><label>رابط API الذكاء الاصطناعي للصور</label><input type="text" id="settingsAiUrl" placeholder="https://.../api/public/generate?key=...&prompt=" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>مفتاح API (اختياري إذا كان داخل الرابط)</label><input type="text" id="settingsAiKey" placeholder="bai_live_..." style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>نوع API الصور</label><select id="settingsAiType" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"><option value="custom">مخصص (صيغة المتجر الحالية)</option><option value="openai">OpenAI متوافق (DALL-E)</option><option value="pollinations">Pollinations مجاني (بلا مفتاح)</option></select></div>
+          <div class="field"><label>موديل الصور (لنوع OpenAI فقط)</label><input type="text" id="settingsAiModel" placeholder="dall-e-3" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+          <div class="field"><label>قالب البرومبت الموحّد ({name} = اسم العنصر)</label><textarea id="settingsAiPrompt" rows="3" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical;"></textarea></div>
+          <div class="field"><label>برومبت خاص بالمنتجات ({name} = اسم المنتج)</label><textarea id="settingsAiPromptProduct" rows="3" placeholder="اتركه فاضي لاستخدام القالب الموحّد" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical;"></textarea></div>
+          <div class="field"><label>برومبت خاص بالأقسام والأقسام الفرعية ({name} = اسم القسم)</label><textarea id="settingsAiPromptSection" rows="3" placeholder="اتركه فاضي لاستخدام القالب الموحّد" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical;"></textarea></div>
+          <div class="field"><label>رقم واتساب الدعم</label><input type="text" id="settingsWaNumber" placeholder="9639xxxxxxxx" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>رابط واتساب الدعم (اختياري)</label><input type="text" id="settingsWaUrl" placeholder="https://wa.me/9639xxxxxxxx" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>رابط دعم تيليجرام (اختياري)</label><input type="text" id="settingsTgUrl" placeholder="https://t.me/username" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>رابط قناة أخبار واتساب</label><input type="text" id="settingsWaChannel" placeholder="https://whatsapp.com/channel/..." style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>رابط قناة أخبار تيليجرام</label><input type="text" id="settingsTgChannel" placeholder="https://t.me/channel" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <button class="btn-sm" onclick="previewWelcomePopup()" style="margin-bottom:10px;"><i class="fa-solid fa-eye"></i> معاينة النافذة الآن</button>
+        </div>
+        <button class="btn btn-primary mt-10" style="width:auto; padding:11px 22px;" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>🛠️ وضع الصيانة</h3></div>
+        <div id="maintenanceStatusBox" class="info-banner" style="display:none; margin-bottom:12px;">
+          <i class="fa-solid fa-triangle-exclamation" style="color:var(--warning);"></i>
+          <div>الصيانة مفعّلة حالياً — الموقع مغلق عن المستخدمين، وينتهي تلقائياً بعد: <b id="maintenanceRemaining">—</b><div id="maintenanceReasonView" class="field-hint" style="margin-top:4px;"></div></div>
+        </div>
+        <div class="admin-fields-grid">
+          <div class="field">
+            <label>المدة: أشهر</label>
+            <input type="number" id="maintenanceMonths" placeholder="0" min="0" step="1" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          </div>
+          <div class="field">
+            <label>المدة: أيام</label>
+            <input type="number" id="maintenanceDays" placeholder="0" min="0" step="1" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          </div>
+          <div class="field">
+            <label>المدة: ساعات</label>
+            <input type="number" id="maintenanceHours" placeholder="مثال: 10" min="0" step="0.5" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          </div>
+          <div class="field">
+            <label>المدة: دقائق</label>
+            <input type="number" id="maintenanceMinutes" placeholder="مثال: 30" min="0" step="1" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          </div>
+          <div class="field"><label>سبب الصيانة (يظهر للزوار)</label><input type="text" id="maintenanceReason" placeholder="مثال: تحديث أنظمة الدفع" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>ملاحظة إضافية (تظهر للزوار)</label><textarea id="maintenanceNote" rows="2" placeholder="مثال: نعود خلال ساعات مع مميزات جديدة…" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical;"></textarea></div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn-sm" style="background:var(--warning); color:#000;" onclick="enableMaintenance()"><i class="fa-solid fa-power-off"></i> تفعيل الصيانة</button>
+          <button class="btn-sm danger" onclick="disableMaintenance()"><i class="fa-solid fa-check"></i> إيقاف الصيانة الآن</button>
+        </div>
+        <div class="field-hint mt-10">وقت الصيانة مفعّل: كل المستخدمين (غير الأدمن) بيشوفوا رسالة "الموقع بفترة صيانة" مع عدّاد تنازلي، وبتوقف تلقائياً لما ينتهي الوقت.</div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3><i class="fa-solid fa-user-shield"></i> صلاحيات الأدمن</h3></div>
+      <div class="panel">
+        <div class="panel-head"><h3>المشرفون</h3></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>آيدي تيليجرام</th><th>الصلاحية</th><th>إجراء</th></tr></thead>
+            <tbody id="adminsTableBody"></tbody>
+          </table>
+        </div>
+        <div class="admin-fields-grid mt-10">
+          <input type="text" id="newAdminId" placeholder="أدخل آيدي تيليجرام" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <button class="btn btn-primary" onclick="addAdminUser()"><i class="fa-solid fa-user-plus"></i> إضافة مشرف</button>
+        </div>
+      </div>
+
+      <div class="panel" id="webAdminsPanel">
+        <div class="panel-head"><h3><i class="fa-solid fa-user-tie"></i> أدمن الموقع (صلاحية كاملة على اللوحة)</h3></div>
+        <div class="field-hint" style="margin-bottom:10px;">أدخل بريد حساب مسجّل بالموقع لمنحه صلاحية كاملة للدخول للوحة الأدمن. الإضافة والحذف والصلاحيات مسموحة للمالك فقط. <b>مهم:</b> لتعمل الصلاحيات يجب دخول الأدمن <b>بحسابه الخاص</b> (تسجيل دخول الموقع ثم دخول تلقائي) — الدخول بكلمة مرور المالك يعطي صلاحية كاملة دائماً.</div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>البريد</th><th>النوع</th><th>الصلاحيات</th><th>تاريخ الإضافة</th><th>إجراء</th></tr></thead>
+            <tbody id="webAdminsTableBody"></tbody>
+          </table>
+        </div>
+        <div class="admin-fields-grid mt-10" id="webAdminsAddRow" style="display:none;">
+          <input type="email" id="newWebAdminEmail" placeholder="example@email.com" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <button class="btn btn-primary" onclick="addWebAdmin()"><i class="fa-solid fa-user-plus"></i> منح صلاحية أدمن</button>
+        </div>
+        <div class="panel-head" style="margin-top:14px;"><h3><i class="fa-solid fa-key"></i> تغيير كلمة مرور الأدمن</h3></div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 10px;">بدّلها من الافتراضية لكلمة خاصة بك (8 أحرف على الأقل) حتى لا يستطيع أحد الدخول للوحة.</p>
+        <div class="admin-fields-grid">
+          <input type="password" id="admCurPw" placeholder="الحالية" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="password" id="admNewPw" placeholder="الجديدة (8+ أحرف)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <button class="btn btn-primary" onclick="changeAdminPassword()"><i class="fa-solid fa-check"></i> تغيير</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ========== 2) الطلبات ========== -->
+    <section class="admin-section" id="sec-orders">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>كل الطلبات</h3>
+          <div class="tabs" style="margin:0; width:auto;">
+            <button class="tab-btn active" onclick="filterAdminOrders('all', this)">الكل</button>
+            <button class="tab-btn" onclick="filterAdminOrders('processing', this)">قيد التنفيذ</button>
+            <button class="tab-btn" onclick="filterAdminOrders('failed', this)">فاشلة</button>
+          </div>
+        </div>
+        <div class="search-row" style="margin-bottom:10px;">
+          <button class="search-btn" onclick="renderOrdersTable()"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <input type="text" id="ordersSearchInput" placeholder="بحث برقم الطلب / التتبع / اللاعب / المنتج..." oninput="renderOrdersTable()">
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>رقم التتبع 🔖</th><th>المستخدم</th><th>المنتج</th><th>آيدي اللاعب</th><th>السعر</th><th>الحالة</th><th>إجراء</th></tr></thead>
+            <tbody id="ordersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3><i class="fa-solid fa-bolt"></i> الطلبات اليدوية</h3></div>
+      <div class="panel">
+        <div class="panel-head"><h3>الطلبات اليدوية (بإنتظار مراجعتك)</h3></div>
+        <div class="info-banner" style="margin-bottom:12px;">
+          <i class="fa-solid fa-bolt"></i>
+          <div>الطلبات التي تحتاج مراجعة يدوية (منتجات غير مربوطة بمزوّد API — تُحجز كمبلغ مدفوع وتبقى <b>بانتظار موافقتك</b> ولا تكتمل فور الشراء). بتقدر تقبل/ترفض أو تشحنها مباشرة عبر مزوّد.</div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>رقم التتبع 🔖</th><th>المستخدم</th><th>المنتج</th><th>آيدي اللاعب</th><th>السعر</th><th>الحالة</th><th>إجراء</th></tr></thead>
+            <tbody id="shopOrdersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 3) الإيداعات ========== -->
+    <section class="admin-section" id="sec-deposits">
+      <div class="panel">
+        <div class="panel-head"><h3>طلبات الإيداع اليدوي</h3></div>
+        <div class="search-row" style="margin-bottom:10px;">
+          <button class="search-btn" onclick="renderDepositsTable()"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <input type="text" id="depositsSearchInput" placeholder="بحث برقم الإيداع / الكود / المستخدم..." oninput="renderDepositsTable()">
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>المستخدم</th><th>الطريقة</th><th>المبلغ USD</th><th>المبلغ SYP</th><th>الكود</th><th>إجراء</th></tr></thead>
+            <tbody id="depositsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3><i class="fa-solid fa-money-bill-transfer"></i> طرق الإيداع</h3></div>
+      <div class="panel">
+        <div class="panel-head"><h3>طرق الإيداع التلقائي (تحقق فوري عبر API)</h3></div>
+        <div class="admin-fields-grid" style="margin-bottom:14px;">
+          <input type="text" id="autoMethodTitle" placeholder="الاسم (ShamCash)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="autoMethodDescription" placeholder="رقم/عنوان الاستلام (يظهر للمستخدم ليحوّل عليه)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="autoMethodToken" placeholder="API Token" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="autoMethodUrl" placeholder="API URL" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <select id="autoMethodGatewayType" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+            <option value="verify">تحقق برقم العملية (الطريقة القديمة)</option>
+            <option value="invoice">إنشاء فاتورة ودفع مباشر (شام كاش)</option>
+          </select>
+          <select id="autoMethodCurrency" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+            <option value="usd">المستخدم يكتب المبلغ بالدولار</option>
+            <option value="syp">المستخدم يكتب المبلغ بالليرة السورية</option>
+          </select>
+          <button class="btn btn-primary" onclick="addAutoMethod()"><i class="fa-solid fa-plus"></i> إضافة</button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>صورة</th><th>الاسم</th><th>API URL</th><th>إجراء</th></tr></thead>
+            <tbody id="autoMethodsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>طرق الإيداع اليدوي (مراجعة الأدمن)</h3></div>
+        <div class="admin-fields-grid" style="margin-bottom:8px;">
+          <input type="text" id="manualMethodTitle" placeholder="الاسم (حوالة فوري)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="manualMethodCode" placeholder="Transfer code (اختياري)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <select id="manualMethodCurrency" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+            <option value="usd">المستخدم يكتب المبلغ بالدولار</option>
+            <option value="syp">المستخدم يكتب المبلغ بالليرة السورية</option>
+          </select>
+        </div>
+        <textarea id="manualMethodDescription" placeholder="تعليمات التحويل اللي بتظهر للمستخدم بصفحة الطريقة (مثلاً: أقل مبلغ، تحويل دوي، ملاحظات...)" rows="3" style="width:100%; padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); margin-bottom:10px; resize:vertical;"></textarea>
+        <button class="btn btn-primary" onclick="addManualMethod()" style="margin-bottom:14px;"><i class="fa-solid fa-plus"></i> إضافة</button>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>صورة</th><th>الاسم</th><th>إجراء</th></tr></thead>
+            <tbody id="manualMethodsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <i class="fa-solid fa-image"></i>
+        <div>اضغط "صورة" بجانب أي طريقة لرفع صورة مربعة لها — هي يلي بتظهر بشبكة طرق الإيداع وبصفحة تفاصيل الطريقة بالموقع.</div>
+      </div>
+
+      <div class="info-banner">
+        <i class="fa-solid fa-shield-halved"></i>
+        <div>منطق التحقق التلقائي (<code>verify_auto_deposit</code>) منقول مباشرة من بوتك — أي كود تحويل خاطئ أو ناقص بينرفض تلقائياً.</div>
+      </div>
+    </section>
+
+    <!-- ========== 4) المستخدمون ========== -->
+    <section class="admin-section" id="sec-users">
+      <div class="admin-grid">
+        <div class="kpi-card gold"><div class="lbl"><i class="fa-solid fa-chart-pie"></i> متوسط الرصيد</div><div class="val" id="usersKpiAvgBalance">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-cart-shopping"></i> إجمالي الطلبات</div><div class="val" id="usersKpiOrders">—</div></div>
+        <div class="kpi-card green"><div class="lbl"><i class="fa-solid fa-arrow-trend-up"></i> إجمالي الأرصدة</div><div class="val" id="usersKpiTotalBalance">—</div></div>
+        <div class="kpi-card"><div class="lbl"><i class="fa-solid fa-users"></i> إجمالي المستخدمين</div><div class="val" id="usersKpiTotal">—</div></div>
+      </div>
+
+      <div class="admin-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="panel">
+          <div class="panel-head"><h3>💲 أعلى 5 مستخدمين رصيداً</h3></div>
+          <canvas id="topBalancesChart" height="180"></canvas>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>توزيع المستويات</h3></div>
+          <canvas id="tierDistributionChart" height="180"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>المستخدمون</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-sm" style="background:var(--success); color:#fff;" onclick="exportUsersCsv()"><i class="fa-solid fa-download"></i> تصدير CSV</button>
+            <button class="btn-sm" onclick="loadUsers()"><i class="fa-solid fa-arrows-rotate"></i> تحديث</button>
+          </div>
+        </div>
+        <div class="admin-fields-grid" style="margin-bottom:12px;">
+          <select id="usersFilterApi" onchange="renderUsersTable()" style="padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:11px;">
+            <option value="">كل حالات API</option>
+            <option value="enabled">API مفعّل</option>
+            <option value="disabled">API غير مفعّل</option>
+          </select>
+          <select id="usersFilterTier" onchange="renderUsersTable()" style="padding:9px; border-radius:10px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:11px;">
+            <option value="">كل المستويات</option>
+          </select>
+          <div class="input-wrap"><input type="text" id="usersSearchInput" placeholder="بحث بالاسم أو الإيميل..." oninput="renderUsersTable()" style="padding:9px 32px 9px 10px; border-radius:10px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); width:100%; font-size:11px;"><i class="fa-solid fa-magnifying-glass" style="position:absolute; font-size:11px;"></i></div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>المستخدم</th><th>البريد</th><th>الرصيد</th><th>الرتبة</th><th>الحالة</th><th>API</th><th>إجراء</th></tr></thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== مودال تفاصيل المستخدم المتقدمة ===== -->
+    <div id="userDetailsModal" style="display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.6); align-items:center; justify-content:center; padding:16px;">
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:18px; max-width:640px; width:100%; max-height:88vh; overflow-y:auto; padding:20px;">
+        <div class="panel-head"><h3><i class="fa-solid fa-user-gear"></i> تفاصيل المستخدم المتقدمة</h3><button class="btn-sm" onclick="closeUserDetailsModal()"><i class="fa-solid fa-xmark"></i></button></div>
+        <div id="userDetailsName" style="font-weight:800; font-size:13px; margin-bottom:10px;"></div>
+        <div class="admin-grid">
+          <div class="kpi-card gold"><div class="lbl">الربح</div><div class="val" id="udRProfit" style="font-size:16px;">—</div></div>
+          <div class="kpi-card"><div class="lbl">عدد الطلبات</div><div class="val" id="udOrders" style="font-size:16px;">—</div></div>
+          <div class="kpi-card"><div class="lbl">إجمالي الصرف</div><div class="val" id="udSpent" style="font-size:16px;">—</div></div>
+          <div class="kpi-card green"><div class="lbl">الرصيد</div><div class="val" id="udBalance" style="font-size:16px;">—</div></div>
+        </div>
+        <div class="panel-head" style="margin-top:14px;"><h3>آخر الطلبات</h3></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+            <tbody id="userDetailsOrdersBody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:14px;">
+          <button class="btn-sm" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> طباعة / حفظ PDF</button>
+          <button class="btn-sm" style="background:var(--success); color:#fff;" onclick="exportUserOrdersCsv()"><i class="fa-solid fa-download"></i> تصدير CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 5) المستويات ========== -->
+    <section class="admin-section" id="sec-discount-tiers">
+      <div class="panel">
+        <div class="panel-head"><h3>⚡ الترقية التلقائية للرتب</h3></div>
+        <div class="field-hint" style="margin-bottom:10px;">عند التفعيل: أي مستخدم يتجاوز مجموع مشترياته المكتملة <b>حد الإنفاق</b> لرتبة يُرقّى وحده فوراً مع إشعار 🎖️ — ترقية فقط ولا تخفيض أبداً (رتبتك اليدوية الأعلى محفوظة).</div>
+        <div class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row-reverse; justify-content:flex-end;">
+          <label for="autoTierEnabled" style="margin:0;">تفعيل الترقية التلقائية</label>
+          <input type="checkbox" id="autoTierEnabled" onchange="saveAutoTier(this.checked)" style="width:18px; height:18px;">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>إضافة رتبة جديدة</h3></div>
+        <div class="admin-fields-grid">
+          <div class="field"><label>اسم الرتبة</label><input type="text" id="newTierName" placeholder="مثال: VIP2" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>نسبة الخصم %</label><input type="number" id="newTierPercent" placeholder="مثال: 10" min="0" max="100" step="0.5" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>حد الإنفاق للترقية التلقائية ($)</label><input type="number" id="newTierMinSpent" placeholder="مثال: 100" min="0" step="1" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>ترتيب العرض</label><input type="number" id="newTierSort" placeholder="0" value="0" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+        </div>
+        <button class="btn btn-primary mt-10" style="width:auto; padding:11px 22px;" onclick="addDiscountTier()"><i class="fa-solid fa-plus"></i> إضافة الرتبة</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>الرتب الحالية</h3><span class="text-muted" style="font-size:10.5px;">النسبة العامة تُطبق على كل الأقسام ما لم تخصص نسبة لقسم بالأسفل</span></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الرتبة</th><th>نسبة الخصم</th><th>حد الإنفاق $</th><th>ترتيب العرض</th><th>إجراء</th></tr></thead>
+            <tbody id="tiersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>🎯 خصم خاص لكل قسم</h3><button class="btn-sm" onclick="loadTierMatrix()"><i class="fa-solid fa-arrows-rotate"></i> تحديث</button></div>
+        <div class="field-hint" style="margin-bottom:10px;">مثال: رتبة <b>تاجر</b> — 5% على قسم الألعاب و2% على قسم الأرقام. الخلية الفارغة تعني <b>الخصم العام</b> للرتبة. يُطبق فوراً عند الشراء (موقع + API + موزعين).</div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr id="tierMatrixHead"><th>القسم</th></tr></thead>
+            <tbody id="tierMatrixBody"><tr><td>...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <i class="fa-solid fa-circle-info"></i>
+        <div>أي تعديل على نسبة رتبة موجودة بينعكس فوراً على كل المستخدمين المعيّنين لها. لتعيين رتبة لمستخدم معيّن، روح لقسم "المستخدمون" واختر الرتبة من القائمة المنسدلة بجانب اسمه.</div>
+      </div>
+    </section>
+
+    <!-- ========== 6) المنتجات ========== -->
+    <section class="admin-section" id="sec-products">
+      <div class="panel">
+        <div class="panel-head"><h3><i class="fa-solid fa-file-import"></i> استيراد منتجات API من CSV</h3></div>
+        <div class="field-hint" style="margin-bottom:10px;">الصيغة المقبولة: <code>product,sku,price</code> أو بالعربية <code>المنتج,الباقة,السعر</code> (أعمدة إضافية: التكلفة، المخزون). يدعم الفاصلة والفاصلة المنقوطة وترميز إكسل العربي.</div>
+        <input type="file" id="catalogCsvInput" accept=".csv,text/csv" style="margin-bottom:10px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="importCatalogCsv()"><i class="fa-solid fa-cloud-arrow-up"></i> استيراد المنتجات المصنّفة</button>
+          <button class="btn-sm danger" id="catalogRollbackBtn" style="display:none;" onclick="rollbackCatalogImport()"><i class="fa-solid fa-rotate-left"></i> التراجع عن آخر دفعة</button>
+          <button class="btn-sm" onclick="brandAllImages()"><i class="fa-solid fa-wand-magic-sparkles"></i> توليد صور لكل المنتجات</button>
+          <button class="btn-sm primary" id="bulkAiBtn" onclick="bulkAiImages()"><i class="fa-solid fa-robot"></i> توليد عبر API لكل المنتجات (بالخلفية)</button>
+          <button class="btn-sm danger" onclick="clearCatalogProducts()"><i class="fa-solid fa-trash"></i> مسح كل المنتجات</button>
+        </div>
+        <div id="catalogImportResult" class="field-hint mt-10"></div>
+        <div id="bulkAiProgress" style="display:none; margin-top:10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+            <span id="bulkAiLabel">جاري التوليد…</span>
+            <button class="btn-sm danger" onclick="stopBulkAi()">إيقاف</button>
+          </div>
+          <div style="height:10px; border-radius:99px; background:var(--card-soft); border:1px solid var(--border); overflow:hidden;">
+            <div id="bulkAiBar" style="height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--gold),var(--gold-2)); transition:width .3s;"></div>
+          </div>
+          <div id="bulkAiFails" class="field-hint mt-10"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>إضافة منتج جديد</h3></div>
+        <div class="admin-fields-grid">
+          <div class="field"><label>اسم المنتج</label><input type="text" id="newProductName" placeholder="مثال: PUBG Mobile" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>القسم</label>
+            <select id="newProductSection" onchange="onProductSectionChange()" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></select>
+          </div>
+          <div class="field" id="newProductSubsectionWrap" style="display:none;"><label>القسم الفرعي (اختياري)</label>
+            <select id="newProductSubsection" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></select>
+          </div>
+          <div class="field" id="newProductParentWrap" style="display:none;"><label>منتج أب (اختياري — لجعل هذا المنتج فرعياً بداخله، مثل لجند عالمية داخل لجند)</label>
+            <select id="newProductParent" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></select>
+          </div>
+          <div class="field"><label>الإيموجي / الأيقونة</label><input type="text" id="newProductEmoji" placeholder="🎮" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>📝 ملاحظة المنتج (اختياري — تظهر للزبون في صفحة المنتج)</label><textarea id="newProductNotes" rows="2" placeholder="مثال: يصلك الرقم خلال دقائق في صفحة الطلب…" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical;"></textarea></div>
+          <div class="field"><label>🏷️ نص العرض (اختياري — مثال: عرض)</label><input type="text" id="newProductOffer" placeholder="عرض" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>التوفر</label><select id="newProductActive" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"><option value="1">متوفر</option><option value="0">غير متوفر</option></select></div>
+        </div>
+        <button class="btn btn-primary mt-10" style="width:auto; padding:11px 22px;" onclick="addProduct()"><i class="fa-solid fa-plus"></i> إضافة المنتج</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>كل المنتجات</h3></div>
+        <input type="text" placeholder="بحث عن منتج أو قسم..." oninput="searchProducts(this.value)"
+               style="width:100%; padding:11px; margin-bottom:12px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); box-sizing:border-box;">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الترتيب</th><th>المنتج</th><th>القسم</th><th>القسم الفرعي</th><th>عدد الفئات</th><th>إجراء</th></tr></thead>
+            <tbody id="productsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== لوحة إدارة فئات منتج محدد ===== -->
+      <div class="panel" id="categoriesPanel" style="display:none;">
+        <div class="panel-head"><h3 id="categoriesPanelTitle">فئات المنتج</h3><button class="btn-sm" onclick="document.getElementById('categoriesPanel').style.display='none'"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="admin-fields-grid" style="margin-bottom:14px;">
+          <input type="text" id="newCategoryName" placeholder="اسم الفئة (مثال: 660 شدة)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="number" id="newCategoryPrice" placeholder="السعر بالدولار" step="0.01" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <select id="newCategoryType" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"><option value="default">عادي</option><option value="counter">عداد</option></select>
+          <input type="number" id="newCategoryUnitQty" placeholder="السعر لكل كمية (مثال 100)" min="1" value="1" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="number" id="newCategoryMinQty" placeholder="الحد الأدنى" min="1" value="1" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="number" id="newCategoryMaxQty" placeholder="الحد الأقصى" min="1" value="1" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <label style="display:flex; align-items:center; gap:7px; font-size:12px;"><input type="checkbox" id="newCategoryRequiresId" checked> يطلب ايدي اللاعب</label>
+          <input type="number" id="newCategoryStock" placeholder="الكمية (اتركه فارغ = غير محدود)" min="0" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <select id="newCategoryProvider" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+            <option value="">🔗 الربط: يدوي (بموافقة الأدمن)</option>
+          </select>
+          <input type="text" id="newCategoryApiProduct" placeholder="آيدي منتج المزوّد (إن اخترت مزوّداً)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;">
+          <button class="btn btn-primary" onclick="addCategory()"><i class="fa-solid fa-plus"></i> إضافة فئة</button>
+        </div>
+        <div class="field-hint" style="margin:-6px 0 12px;">اختر المزوّد وآيدي منتجه ليرتبط تلقائياً فور الإضافة ⚡ — أو اترك "يدوي" فيُباع بموافقتك من قسم الطلبات اليدوية 🖐️</div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الفئة</th><th>السعر $</th><th>المخزون</th><th>الربط</th><th>إجراء</th></tr></thead>
+            <tbody id="categoriesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3><i class="fa-solid fa-table-cells"></i> أقسام المتجر</h3></div>
+      <div class="panel">
+        <div class="panel-head"><h3>أقسام المتجر (تظهر بالصفحة الرئيسية)</h3></div>
+        <div class="admin-fields-grid" style="margin-bottom:14px;">
+          <input type="text" id="newSectionName" placeholder="مثال: اشتراكات IPTV" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="newSectionEmoji" placeholder="إيموجي 📺" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <button class="btn btn-primary" onclick="addSection()"><i class="fa-solid fa-plus"></i> إضافة قسم</button>
+        </div>
+        <div class="info-banner" style="margin-bottom:12px;">
+          <i class="fa-solid fa-circle-info"></i>
+          <div>استخدم أسهم ⬆️⬇️ لترتيب ظهور الأقسام بالصفحة الرئيسية. اضغط "الأقسام الفرعية" لإضافة أقسام فرعية تحت أي قسم (مثل: ألعاب ← ببجي موبايل، فري فاير).</div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الترتيب</th><th>القسم</th><th>عدد المنتجات</th><th>الحالة</th><th>إجراء</th></tr></thead>
+            <tbody id="sectionsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== لوحة إدارة الأقسام الفرعية لقسم محدد ===== -->
+      <div class="panel" id="subsectionsPanel" style="display:none;">
+        <div class="panel-head"><h3 id="subsectionsPanelTitle">الأقسام الفرعية</h3><button class="btn-sm" onclick="document.getElementById('subsectionsPanel').style.display='none'"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="admin-fields-grid" style="margin-bottom:14px;">
+          <input type="text" id="newSubsectionName" placeholder="مثال: ببجي موبايل" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="newSubsectionEmoji" placeholder="إيموجي 🔫" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <button class="btn btn-primary" onclick="addSubsection()"><i class="fa-solid fa-plus"></i> إضافة قسم فرعي</button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الترتيب</th><th>القسم الفرعي</th><th>عدد المنتجات</th><th>الحالة</th><th>إجراء</th></tr></thead>
+            <tbody id="subsectionsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 7) الإدارة الذكية ========== -->
+    <!-- ========== النسخ الاحتياطي وحذف البيانات ========== -->
+    <section class="admin-section" id="sec-backup">
+      <div class="panel">
+        <div class="panel-head">
+          <h3><i class="fa-solid fa-database"></i> النسخ الاحتياطية</h3>
+          <button class="btn-sm" onclick="createBackup(this)"><i class="fa-solid fa-plus"></i> إنشاء نسخة الآن</button>
+        </div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 10px;">
+          النسخة بتحفظ كل شي (المستخدمون، الأرصدة، الطلبات، المنتجات، الإعدادات). فيك تنزّلها على جهازك أو ترجعها وقت ما بدك.
+        </p>
+        <div id="storageUsageBox" style="background:var(--card-soft); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span><i class="fa-solid fa-database"></i> <b>حجم قاعدة البيانات المستخدم</b></span>
+            <span id="storageUsageText" style="font-weight:800;">...</span>
+          </div>
+          <div style="background:var(--bg); border-radius:99px; height:10px; overflow:hidden;">
+            <div id="storageUsageBar" style="height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,#22c55e,#ffc24b); transition:width .5s;"></div>
+          </div>
+          <div id="storageUsageDetail" style="margin-top:8px; color:var(--muted);"></div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+          <button class="btn-sm" onclick="downloadJsonBackup(this)"><i class="fa-solid fa-download"></i> تنزيل نسخة JSON (تعمل على كل الاستضافات)</button>
+          <label class="btn-sm" style="cursor:pointer;"><i class="fa-solid fa-upload"></i> استرجاع JSON<input type="file" id="jsonRestoreInput" accept=".json" style="display:none" onchange="restoreJsonBackup(this)"></label>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الملف</th><th>الحجم</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+            <tbody id="backupsTableBody"><tr><td colspan="4">...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="panel-head" style="margin-top:10px;"><h3>نسخ الأمان التلقائية</h3></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>السبب</th><th>التاريخ</th><th>الحجم</th><th>إجراءات</th></tr></thead>
+            <tbody id="snapsTableBody"><tr><td colspan="4">...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3><i class="fa-solid fa-upload"></i> استرجاع من ملف</h3></div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 10px;">
+          ارفع ملف نسخة احتياطية (.db) نزّلته سابقاً. بيتم أخذ نسخة أمان تلقائياً قبل الاستبدال.
+        </p>
+        <input type="file" id="restoreFileInput" accept=".db" style="margin-bottom:10px;">
+        <button class="btn btn-primary" onclick="restoreFromUpload(this)"><i class="fa-solid fa-rotate-left"></i> استرجاع الملف المرفوع</button>
+      </div>
+
+      <div class="panel" style="border-color:var(--danger);">
+        <div class="panel-head"><h3 style="color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> حذف كل البيانات</h3></div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 10px;">
+          إجراء خطير ولا رجعة فيه (بس منأخذ نسخة أمان تلقائياً قبله). اختار نطاق الحذف واكتب كلمة <b>حذف</b> للتأكيد.
+        </p>
+        <div class="field">
+          <label>نطاق الحذف</label>
+          <select id="wipeScope">
+            <option value="users">المستخدمون + الطلبات + الإيداعات + المعاملات فقط</option>
+            <option value="all">كل شي (يشمل المنتجات والأقسام والمزودين والإعدادات)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>اكتب: حذف</label>
+          <input type="text" id="wipeConfirm" placeholder="حذف">
+        </div>
+        <button class="btn" style="background:var(--danger); color:#fff;" onclick="wipeAllData(this)"><i class="fa-solid fa-trash"></i> حذف كل البيانات</button>
+      </div>
+    </section>
+
+    <!-- ========== سجل الأدمن ========== -->
+    <section class="admin-section" id="sec-logs">
+      <div class="panel">
+        <div class="panel-head">
+          <h3><i class="fa-solid fa-clipboard-list"></i> سجل نشاط الأدمن</h3>
+          <button class="btn-sm" onclick="loadAdminLogs()"><i class="fa-solid fa-arrows-rotate"></i> تحديث</button>
+        </div>
+        <div class="field-hint" style="margin-bottom:10px;">كل إجراء مهم (قبول/رفض طلب أو إيداع، تعديل رصيد، حظر، رتب، API، مزوّدون، إعدادات، صيانة) يُسجَّل هنا مع الوقت.</div>
+        <div class="search-row" style="margin-bottom:10px;">
+          <button class="search-btn" onclick="renderAdminLogs()"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <input type="text" id="logsSearchInput" placeholder="بحث في السجل..." oninput="renderAdminLogs()">
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الوقت</th><th>الفاعل</th><th>الإجراء</th><th>الهدف</th><th>التفاصيل</th></tr></thead>
+            <tbody id="logsTableBody"><tr><td colspan="5">...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== المساعد الذكي 🤖 ========== -->
+    <section class="admin-section" id="sec-ai-agent">
+      <div class="panel">
+        <div class="panel-head"><h3><i class="fa-solid fa-robot"></i> إعدادات المساعد الذكي</h3><span class="text-muted" id="aiAgentStatus" style="font-size:11px;">—</span></div>
+        <div class="field-hint" style="margin-bottom:10px;">الوكيل يظهر بزر الدائرة 🤖 أسفل الموقع، يعرف كل منتجاتك وأسعارها ويوجّه المستخدمين. يعمل مع أي API متوافق مع OpenAI (OpenAI نفسها، OpenRouter، أو سيرفر محلي). المفتاح السري يبقى بالسيرفر ولا يظهر أبداً.</div>
+        <div class="admin-fields-grid">
+          <div class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row-reverse; justify-content:flex-end;">
+            <label for="aiEnabled" style="margin:0;">تفعيل المساعد بالموقع</label>
+            <input type="checkbox" id="aiEnabled" style="width:18px; height:18px;">
+          </div>
+          <div class="field"><label>اسم الوكيل (يظهر للمستخدم)</label><input type="text" id="aiName" placeholder="مساعد ARAB" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>⭐ اختر النموذج الجاهز (يعبئ الحقول وحده)</label>
+            <select id="aiModelPreset" onchange="onAiModelPreset()" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+              <option value="">— اختر من القائمة —</option>
+              <option value="deepseek/deepseek-chat">⭐ DeepSeek Chat — الموصى به (عربية ممتازة ورخيص)</option>
+              <option value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite — سريع واقتصادي</option>
+              <option value="openai/gpt-4o-mini">GPT-4o Mini — متوازن</option>
+              <option value="openai/gpt-5-mini">GPT-5 Mini — الأحدث من OpenAI</option>
+              <option value="anthropic/claude-sonnet-4">Claude Sonnet — الأقوى (غالٍ)</option>
+              <option value="qwen/qwen3-32b">Qwen3 32B — مفتوح المصدر</option>
+              <option value="custom">✍️ إدخال يدوي مخصص</option>
+            </select>
+          </div>
+          <div class="field"><label>رابط الـ API (ينتهي بـ /chat/completions)</label><input type="text" id="aiUrl" placeholder="https://api.openai.com/v1/chat/completions" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+          <div class="field"><label>مفتاح الـ API (سري)</label><input type="password" id="aiKey" placeholder="sk-... (اتركه كما هو للإبقاء)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+          <div class="field"><label>اسم النموذج (Model)</label><input type="text" id="aiModel" placeholder="gpt-4o-mini" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+          <div class="field"><label>رسالة الترحيب</label><input type="text" id="aiWelcome" placeholder="أهلاً فيك! اسألني عن أي منتج..." style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+        </div>
+        <div class="field" style="margin-top:10px;"><label>البرومبت المخصص (يُعتمد قبل أي رد — شخصية الوكيل وقوانينه)</label><textarea id="aiPrompt" rows="4" placeholder="مثال: أنت مساعد متجر ARAB STORE، خاطب المستخدم بلهجة سورية ودودة، وابدأ كل رد بإيموجي مناسب..." style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical; width:100%; box-sizing:border-box;"></textarea></div>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary" style="width:auto; padding:11px 22px;" onclick="saveAiAgent()"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
+          <button class="btn-sm" onclick="testAiAgent(this)"><i class="fa-solid fa-vial"></i> تجربة الاتصال</button>
+        </div>
+        <div id="aiTestResult" class="field-hint mt-10" style="white-space:pre-line;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>🧠 ذاكرة الوكيل — ماذا سأله المستخدمون؟</h3><span class="text-muted" id="aiMemCount" style="font-size:11px;">—</span></div>
+        <div class="field-hint" style="margin-bottom:10px;">راجع الأسئلة التي عجز عنها الوكيل وحسّن <b>البرومبت المخصص</b> بالأعلى بناءً عليها. يُحفظ آخر 300 محادثة فقط.</div>
+        <div class="search-row" style="margin-bottom:10px;">
+          <button class="search-btn" onclick="renderAiMemory()"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <input type="text" id="aiMemSearchInput" placeholder="بحث في الأسئلة والأجوبة..." oninput="renderAiMemory()">
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+          <button class="btn-sm" onclick="loadAiMemory()"><i class="fa-solid fa-arrows-rotate"></i> تحديث</button>
+          <button class="btn-sm danger" onclick="clearAiMemory()"><i class="fa-solid fa-trash"></i> مسح الذاكرة</button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الوقت</th><th>السؤال</th><th>رد الوكيل</th><th></th></tr></thead>
+            <tbody id="aiMemTableBody"><tr><td colspan="4">...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== بوت واتساب 💬 ========== -->
+    <section class="admin-section" id="sec-whatsapp">
+      <div class="panel">
+        <div class="panel-head"><h3><i class="fa-brands fa-whatsapp"></i> ربط واتساب + بوت الذكاء الاصطناعي</h3><span class="text-muted" id="waStatusBadge" style="font-size:11px;">—</span></div>
+        <div class="field-hint" style="margin-bottom:10px;">
+          اربط رقم واتساب بالموقع عبر <b>ربط جهاز</b> (متعدد الأجهزة) — تظهرلك <b>كود</b> هنا، تدخله بجوالك من واتساب ← الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف. بعد الربط، أي رسالة تجي للرقم يرد عليها البوت بالذكاء الاصطناعي ويفهم المتجر، ويحط رابط المتجر آخر كل رسالة.
+        </div>
+        <div class="admin-fields-grid">
+          <div class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row-reverse; justify-content:flex-end;">
+            <label for="waEnabled" style="margin:0;">تفعيل بوت واتساب</label>
+            <input type="checkbox" id="waEnabled" style="width:18px; height:18px;">
+          </div>
+          <div class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row-reverse; justify-content:flex-end;">
+            <label for="waBotEnabled" style="margin:0;">تشغيل الرد الذكي</label>
+            <input type="checkbox" id="waBotEnabled" style="width:18px; height:18px;">
+          </div>
+          <div class="field" style="display:flex; align-items:center; gap:8px; flex-direction:row-reverse; justify-content:flex-end;">
+            <label for="waAppendLink" style="margin:0;">إضافة رابط المتجر آخر كل رد</label>
+            <input type="checkbox" id="waAppendLink" style="width:18px; height:18px;">
+          </div>
+          <div class="field"><label>رقم واتساب (مع رمز الدولة بدون +)</label><input type="text" id="waPhone" placeholder="9639xxxxxxxx" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+          <div class="field"><label>اسم البوت</label><input type="text" id="waBotName" placeholder="مساعد المتجر" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+          <div class="field"><label>رابط المتجر (يُرسل للزبائن)</label><input type="text" id="waStoreUrl" placeholder="https://your-store.vercel.app" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+        </div>
+        <div class="field" style="margin-top:10px;"><label>رد الترحيب</label><textarea id="waGreeting" rows="2" placeholder="أهلاً وسهلاً 👋 كيف بقدر ساعدك؟" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); resize:vertical; width:100%; box-sizing:border-box;"></textarea></div>
+        <div class="field" style="margin-top:10px;"><label>رد بديل عند عدم الفهم (اختياري)</label><input type="text" id="waReplyUnknown" placeholder="اتركه فاضي للرد الافتراضي" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></div>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary" style="width:auto; padding:11px 22px;" onclick="saveWhatsApp()"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
+          <button class="btn-sm" onclick="waPair(this)"><i class="fa-solid fa-link"></i> ربط جهاز (طلب كود)</button>
+          <button class="btn-sm danger" onclick="waLogout(this)"><i class="fa-solid fa-plug-circle-xmark"></i> فصل الجهاز</button>
+          <button class="btn-sm" onclick="loadWhatsApp()"><i class="fa-solid fa-arrows-rotate"></i> تحديث الحالة</button>
+        </div>
+        <div id="waPairBox" style="display:none; margin-top:14px; padding:14px; border:1px dashed var(--primary); border-radius:14px; background:var(--card-soft); text-align:center;">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">كود الربط — أدخله بجوالك: واتساب ← الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف</div>
+          <div id="waPairCode" style="font-size:30px; font-weight:800; letter-spacing:4px; direction:ltr; color:var(--primary);">----</div>
+          <div id="waPairHint" class="field-hint" style="margin-top:8px;"></div>
+        </div>
+        <div id="waStatusLine" class="field-hint mt-10" style="white-space:pre-line;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>⚙️ تشغيل الموصل (Connector)</h3><span class="text-muted" style="font-size:11px;">مجاناً عبر GitHub Actions</span></div>
+        <div class="field-hint" style="margin-bottom:10px;">
+          موصّل واتساب يحتاج عملية شغّالة باستمرار (لا يمكن أن يعمل داخل Vercel سيرفرلِس). شغّله مجاناً عبر <b>GitHub Actions</b> بالمستودع نفسه. انسخ القيمتين التاليتين وضعهما كـ <b>Secrets</b> بالمستودع باسمَي <code>WA_SECRET</code> و<code>WA_SERVER</code>.
+        </div>
+        <div class="field" style="margin-bottom:8px;"><label>رابط السيرفر (WA_SERVER)</label><input type="text" id="waServerUrl" readonly style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+        <div class="field"><label>المفتاح السري (WA_SECRET)</label><input type="text" id="waSecret" readonly style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); direction:ltr;"></div>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn-sm" onclick="waCopy('waServerUrl')"><i class="fa-solid fa-copy"></i> نسخ الرابط</button>
+          <button class="btn-sm" onclick="waCopy('waSecret')"><i class="fa-solid fa-copy"></i> نسخ المفتاح</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>📨 سجل محادثات واتساب</h3><span class="text-muted" id="waMsgCount" style="font-size:11px;">—</span></div>
+        <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+          <button class="btn-sm" onclick="loadWhatsAppMessages()"><i class="fa-solid fa-arrows-rotate"></i> تحديث</button>
+          <button class="btn-sm danger" onclick="clearWhatsAppMessages()"><i class="fa-solid fa-trash"></i> مسح السجل</button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الوقت</th><th>الاتجاه</th><th>الرقم</th><th>الرسالة</th></tr></thead>
+            <tbody id="waMsgTableBody"><tr><td colspan="4">...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="sec-smart-admin">
+      <div class="panel">
+        <div class="panel-head"><h3>إضافة مزوّد جديد</h3></div>
+        <div class="admin-fields-grid">
+          <input type="text" id="providerName" placeholder="اسم المزوّد" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="providerToken" placeholder="API Token" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="providerUrl" placeholder="API URL" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+        </div>
+        <div class="field-hint" style="margin:8px 0 6px;">اترك الحقول التالية فاضية ليعمل مع شمس تلقائياً بلا أي إعداد. املأها فقط إذا كان مزوّدك يستخدم مسارات مختلفة عن نمط <code>client/api</code>.</div>
+        <div class="admin-fields-grid">
+          <input type="text" id="providerOrderPath" placeholder="مسار الطلب: ‎/api/order" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="providerStatusPath" placeholder="مسار الحالة: ‎/api/order-status" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="providerCatalogPath" placeholder="مسار الكتالوج: ‎/products" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="providerBalancePath" placeholder="مسار الرصيد (اختياري): ‎/client/api/balance" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+        </div>
+        <button class="btn btn-primary mt-10" style="width:auto; padding:10px 18px;" onclick="addProvider()"><i class="fa-solid fa-plus"></i> إضافة مزوّد جديد</button>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>📥 استيراد ملف منتجات مزوّد (CSV)</h3></div>
+        <div class="field-hint" style="margin-bottom:10px;">ارفع ملف المزوّد بصيغة <code>id,name,price</code> وسيتم: إنشاء/تحديث المزوّد، تقسيم المنتجات لأقسام تلقائياً، توليد صورة لكل منتج، إضافة <b>هامش الربح</b>، وربط كل باقة بالمزوّد. الصفوف غير المفهومة تُتخطّى تلقائياً.</div>
+        <div class="admin-fields-grid">
+          <input type="text" id="impFileName" value="Shams" placeholder="اسم المزوّد" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="impFileToken" placeholder="API Token" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="text" id="impFileUrl" value="https://api.shams4store.com/" placeholder="API URL" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <input type="number" id="impFileMargin" value="15" min="0" step="0.5" placeholder="الهامش % (15)" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <select id="impFileGrouping" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+            <option value="sections" selected>التقسيم: حسب النوع (ألعاب، أرقام، بطاقات…)</option>
+            <option value="game">التقسيم: قسم مستقل لكل لعبة</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          <input type="file" id="impFileInput" accept=".csv,text/csv" style="padding:9px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          <button class="btn btn-primary" style="width:auto; padding:10px 18px;" onclick="importProviderFile()"><i class="fa-solid fa-cloud-arrow-up"></i> استيراد وربط</button>
+        </div>
+        <div id="impFileResult" class="field-hint mt-10"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>مزوّدو شحن الألعاب (API)</h3><button class="btn-sm" onclick="refreshAllBalances(this)"><i class="fa-solid fa-wallet"></i> تحديث كل الأرصدة</button></div>
+        <div class="info-banner" style="margin-bottom:12px;">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          <div><b>استيراد تلقائي:</b> بيسحب كامل كتالوج المزوّد (كل الأقسام والمنتجات) وينشئه بموقعك دفعة وحدة، ويطبّق هامش الربح يلي تحدده فوراً على كل الأسعار.</div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>الاسم</th><th>API URL</th><th>💰 الرصيد</th><th>عدد المنتجات المرتبطة</th><th>هامش الاستيراد %</th><th>إجراء</th></tr></thead>
+            <tbody id="providersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:6px;"><h3><i class="fa-solid fa-tags"></i> التسعير الذكي</h3></div>
+      <div class="panel">
+        <div class="panel-head"><h3>💡 كيف بيشتغل؟</h3></div>
+        <div class="field-hint">
+          حدد فئة أو أكتر من الجدول تحت (فيك تحدد الكل أو فئات معيّنة بس)، حط نسبة الهامش
+          يلي بدك ياها، واضغط "تطبيق". أي فئة مربوطة بمزوّد API رح يتحدّث سعرها فوراً
+          = <b>سعر المزوّد الحالي × (1 + الهامش%)</b>. وبعدين، النظام بيتحقق من سعر
+          المزوّد تلقائياً <b>مرة كل يوم</b> ويحدّث السعر لحاله لو المزوّد غيّر سعرو.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>تطبيق هامش ربح على المحدد</h3><span class="text-muted" id="pricingSelectedCount" style="font-size:11px;">0 فئة محددة</span></div>
+        <div class="admin-fields-grid">
+          <div class="field">
+            <label>نسبة الهامش (%)</label>
+            <input type="number" id="pricingMarginInput" placeholder="مثال: 10" min="0" step="0.5" style="padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);">
+          </div>
+        </div>
+        <button class="btn btn-primary mt-10" style="width:auto; padding:11px 22px;" onclick="applyMarginToSelected()"><i class="fa-solid fa-check"></i> تطبيق على الفئات المحددة</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>كل فئات المنتجات</h3>
+          <button class="btn-sm" onclick="loadPricing()"><i class="fa-solid fa-arrows-rotate"></i> تحديث</button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr>
+              <th><input type="checkbox" id="pricingSelectAll" onchange="toggleSelectAllPricing(this)"></th>
+              <th>المنتج</th><th>الفئة</th><th>المزوّد</th><th>التكلفة</th><th>الهامش</th><th>السعر الحالي</th>
+            </tr></thead>
+            <tbody id="pricingTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+
+  </main>
+</div>
+</div><!-- /adminPanelRoot -->
+
+<!-- ===== Modal تعديل عام ===== -->
+<div id="aiImageModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:210; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:18px; width:100%; max-width:420px; text-align:center;">
+    <div id="aiImageTitle" style="font-weight:800; font-size:14px; margin-bottom:10px;">إنشاء صورة</div>
+    <img id="aiImagePreview" src="" alt="" style="display:none; width:100%; border-radius:12px; margin-bottom:10px;">
+    <div id="aiImagePromptView" style="display:none; background:var(--card-soft); border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:10px; text-align:right;"></div>
+    <div id="aiImageStatus" style="font-size:12px; color:var(--muted); margin-bottom:12px;"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+      <button class="btn-sm primary" onclick="generateAiImage()"><i class="fa-solid fa-wand-magic-sparkles"></i> إنشاء / إعادة إنشاء</button>
+      <button class="btn-sm" id="aiImageConfirm" disabled onclick="confirmAiImage()"><i class="fa-solid fa-check"></i> تأكيد الصورة</button>
+      <button class="btn-sm danger" onclick="closeAiImage()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<div id="permsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:22px; width:100%; max-width:380px; max-height:85vh; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <div id="permsModalTitle" style="font-size:14px; font-weight:800;">صلاحيات الأدمن</div>
+      <button class="btn-sm" onclick="closePermsModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="permsFullHint" class="field-hint" style="margin-bottom:10px;"></div>
+    <div class="field-hint" style="margin-bottom:10px;">⚠️ تُطبق الصلاحيات عند دخول الأدمن <b>بحسابه الخاص</b> — من يدخل بكلمة مرور المالك يبقى بصلاحية كاملة دائماً. بعد تغيير الصلاحيات يجب على الأدمن تسجيل خروج ودخول مجدداً.</div>
+    <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+      <button class="btn-sm" onclick="permsSelectAll('edit')">الكل تعديل</button>
+      <button class="btn-sm" onclick="permsSelectAll('view')">الكل مشاهدة</button>
+      <button class="btn-sm danger" onclick="permsSelectAll('closed')">إغلاق الكل</button>
+    </div>
+    <div id="permsCheckboxes" style="display:flex; flex-direction:column; gap:7px; margin-bottom:14px;"></div>
+    <button class="btn btn-primary mt-10" onclick="saveAdminPerms()"><i class="fa-solid fa-floppy-disk"></i> حفظ الصلاحيات</button>
+  </div>
+</div>
+
+<div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:22px; width:100%; max-width:360px; max-height:85vh; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <div id="editModalTitle" style="font-size:14px; font-weight:800;"></div>
+      <button class="btn-sm" onclick="closeEdit()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="editModalBody" style="display:flex; flex-direction:column; gap:12px;"></div>
+    <button class="btn btn-primary mt-10" onclick="saveEdit()"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button>
+  </div>
+</div>
+
+<!-- ===== Modal تنفيذ الطلب عبر مزوّد ===== -->
+<div id="executeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:22px; width:100%; max-width:380px; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <div style="font-size:14px; font-weight:800;"><i class="fa-solid fa-bolt" style="color:var(--accent); margin-left:6px;"></i> شحن عبر مزوّد API</div>
+      <button class="btn-sm" onclick="closeExecuteModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="info-banner" style="margin-bottom:12px; font-size:11px;">
+      <i class="fa-solid fa-circle-info"></i>
+      <div id="executeOrderInfo" style="font-weight:700;"></div>
+    </div>
+
+    <div class="field" style="margin-bottom:12px;">
+      <label style="font-size:11.5px; font-weight:700; color:var(--muted);">اختر المزوّد</label>
+      <select id="executeProviderSel" onchange="loadProviderProducts()" style="width:100%; padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:12px;"></select>
+    </div>
+
+    <div id="executeProviderProducts" style="margin-bottom:12px; max-height:180px; overflow-y:auto;"></div>
+
+    <div class="field" style="margin-bottom:14px;">
+      <label style="font-size:11.5px; font-weight:700; color:var(--muted);">آيدي المنتج عند المزوّد</label>
+      <input type="text" id="executeApiProductId" placeholder="اكتبه مباشرة أو اضغط على المنتج فوق" style="width:100%; padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:12px;">
+    </div>
+
+    <div class="field" style="margin-bottom:14px;">
+      <label style="font-size:11.5px; font-weight:700; color:var(--muted);">تكلفة الشراء من المزوّد (بالدولار) — لحساب الربح</label>
+      <input type="number" id="executeCostUsd" placeholder="مثال: 0.85" step="0.01" style="width:100%; padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:12px;">
+    </div>
+
+    <button class="btn btn-primary" id="executeConfirmBtn" onclick="confirmExecute()"><i class="fa-solid fa-bolt"></i> تنفيذ الشحن الآن</button>
+  </div>
+</div>
+
+<!-- ===== Modal ربط فئة بمزوّد API بشكل دائم ===== -->
+<div id="linkModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:22px; width:100%; max-width:380px; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <div style="font-size:14px; font-weight:800;"><i class="fa-solid fa-link" style="color:var(--accent); margin-left:6px;"></i> ربط فئة بمزوّد API</div>
+      <button class="btn-sm" onclick="closeLinkModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="info-banner" style="margin-bottom:12px; font-size:11px;">
+      <i class="fa-solid fa-circle-info"></i>
+      <div id="linkCategoryInfo" style="font-weight:700;"></div>
+    </div>
+
+    <div id="linkCurrentStatus" style="margin-bottom:12px;"></div>
+
+    <div class="field" style="margin-bottom:12px;">
+      <label style="font-size:11.5px; font-weight:700; color:var(--muted);">اختر المزوّد</label>
+      <select id="linkProviderSel" onchange="loadLinkProviderProducts()" style="width:100%; padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:12px;"></select>
+    </div>
+
+    <div id="linkProviderProducts" style="margin-bottom:12px; max-height:180px; overflow-y:auto;"></div>
+
+    <div class="field" style="margin-bottom:14px;">
+      <label style="font-size:11.5px; font-weight:700; color:var(--muted);">آيدي المنتج عند المزوّد</label>
+      <input type="text" id="linkApiProductId" placeholder="اكتبه مباشرة أو اضغط على المنتج فوق" style="width:100%; padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:12px;">
+    </div>
+
+    <button class="btn btn-primary" id="linkConfirmBtn" onclick="confirmLink()"><i class="fa-solid fa-link"></i> حفظ الربط</button>
+    <button class="btn-sm danger" style="width:100%; margin-top:8px; padding:10px;" onclick="unlinkCurrentCategory()"><i class="fa-solid fa-link-slash"></i> إلغاء الربط الحالي</button>
+  </div>
+</div>
+
+<!-- ===== Modal تعديل رصيد مستخدم (إضافة أو خصم) ===== -->
+<div id="balanceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:200; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:22px; width:100%; max-width:340px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <div style="font-size:14px; font-weight:800;"><i class="fa-solid fa-coins" style="color:var(--gold); margin-left:6px;"></i> تعديل رصيد <span id="balanceModalUser"></span></div>
+      <button class="btn-sm" onclick="closeBalanceModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label style="font-size:11.5px; font-weight:700; color:var(--muted);">المبلغ (ليرة سورية)</label>
+      <input type="number" id="balanceModalAmount" placeholder="مثال: 50000" style="width:100%; padding:11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:13px;">
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-primary" style="flex:1; background:var(--success);" onclick="submitBalanceAdjust('add')"><i class="fa-solid fa-plus"></i> إضافة</button>
+      <button class="btn btn-primary" style="flex:1; background:var(--danger);" onclick="submitBalanceAdjust('deduct')"><i class="fa-solid fa-minus"></i> خصم</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="js/app.js?v=13"></script>
+<script>
+  const ADMIN_TOKEN_KEY = "admin_token";
+
+  async function adminLogin(e){
+    e.preventDefault();
+    const btn = document.getElementById("adminLoginBtn");
+    const errEl = document.getElementById("adminLoginError");
+    errEl.style.display = "none";
+    const password = document.getElementById("adminPasswordInput").value;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+    try{
+      const res = await fetch(API_BASE + "/admin/login", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ password })
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.message || "كلمة مرور خاطئة");
+      localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+      showAdminPanel();
+    }catch(err){
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
+    return false;
+  }
+
+  async function showAdminPanel(){
+    document.getElementById("adminLoginScreen").style.display = "none";
+    document.getElementById("adminPanelRoot").style.display = "block";
+    try{ await initAdminPerms(); }catch(e){ /* لا نمنع اللوحة أبداً */ }
+    renderTables(); // تحميل البيانات الحقيقية من السيرفر بعد الدخول
+  }
+
+  function adminLogout(){
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    location.reload();
+  }
+
+  document.addEventListener("DOMContentLoaded", async ()=>{
+    if(localStorage.getItem(ADMIN_TOKEN_KEY)){ showAdminPanel(); return; }
+    // محاولة دخول تلقائي للحسابات الموثوقة (مسجّلة دخول أصلاً بالموقع) — بدون كلمة مرور الأدمن
+    if(Store.token()){
+      try{
+        const res = await fetch(API_BASE + "/auth/admin-auto-login", {
+          method:"POST", headers:{"Content-Type":"application/json", "Authorization":"Bearer "+Store.token()}
+        });
+        if(res.ok){
+          const data = await res.json();
+          localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+          showAdminPanel();
+        }
+      }catch(err){ /* تجاهل، يبقى شاشة كلمة المرور العادية */ }
+    }
+  });
+</script>
+<script src="js/admin-data.js?v=19"></script>
+</body>
+</html>

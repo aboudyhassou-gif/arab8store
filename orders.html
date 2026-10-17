@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>طلباتي | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+</head>
+<body>
+
+<div id="drawer" class="drawer">
+  <div class="drawer-user">
+    <div class="drawer-avatar"><i class="fa-solid fa-user"></i></div>
+    <div id="drawerUserName" class="drawer-user-name">زائر</div>
+    <div id="drawerUserEmail" class="drawer-user-email">سجّل دخولك للاستفادة من المحفظة والطلبات</div>
+    <div id="drawerAuthButtons" style="display:flex; flex-direction:column;">
+      <button class="drawer-btn primary" onclick="goLogin(event)"><i class="fa-solid fa-right-to-bracket"></i> تسجيل دخول</button>
+      <button class="drawer-btn ghost" onclick="goRegister(event)"><i class="fa-solid fa-user-plus"></i> حساب جديد</button>
+    </div>
+    <div id="logoutBox" style="display:none; margin-top:8px;">
+      <button class="drawer-btn ghost" onclick="logoutUser(event)"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="guest-hide">
+    <div class="drawer-group-label">رئيسي</div>
+    <a href="/store.html" class="drawer-item"><i class="fa-solid fa-house"></i> الرئيسية</a>
+    <a href="/orders.html" class="drawer-item"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
+    <a href="/wallet.html" class="drawer-item"><i class="fa-solid fa-wallet"></i> المحفظة</a>
+    <a href="/deposit.html" class="drawer-item"><i class="fa-solid fa-credit-card"></i> إيداع رصيد</a>
+  </div>
+  <div class="drawer-group-label">معلومات</div>
+  <a href="https://t.me/aboudy2312" target="_blank" class="drawer-item"><i class="fa-brands fa-telegram"></i> الدعم (تيليجرام)</a>
+  <a href="https://wa.me/96181302718" target="_blank" class="drawer-item"><i class="fa-brands fa-whatsapp"></i> الدعم (واتساب)</a>
+  <div id="ownerAdminMenuItem" style="display:none;">
+    <div class="drawer-group-label">الإدارة</div>
+    <a href="/admin.html" class="drawer-item"><i class="fa-solid fa-user-shield"></i> لوحة الأدمن</a>
+  </div>
+
+  <div class="toggle-row"><button onclick="toggleTheme()"><i class="fa-solid fa-moon"></i> الوضع الليلي</button></div>
+  <div class="drawer-footer"><img src="assets/dev-logo.png" alt="" class="dev-logo" onerror="this.style.display='none'"><div style="margin-top:6px;">برمجة وتصميم</div><a href="https://t.me/aboudy2312" target="_blank"><i class="fa-brands fa-telegram"></i> @aboudy2312</a><div style="margin-top:4px;">2026</div></div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleDrawer(false)"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="left-group">
+      <div class="menu-btn" onclick="toggleDrawer(true)"><span></span><span></span><span></span></div>
+      <div class="logo"><div class="logo-word">ARAB <b>STORE</b></div></div>
+    </div>
+    <div class="user-box">
+      <div class="icon-btn" id="notifBellBtn"><i class="fa-solid fa-bell"></i><span class="badge-dot" id="notifBadge" style="display:none;">0</span></div>
+      <div class="balance-pill"><i class="fa-solid fa-coins"></i><span id="balancePillValue">$0.00</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-head" id="ordersPageHead">
+    <h1><i class="fa-solid fa-bag-shopping" style="color:var(--accent)"></i> طلباتي</h1>
+    <p>تابع حالة كل طلبات الشحن السابقة</p>
+  </div>
+
+  <!-- ===== 1) لستة الطلبات ===== -->
+  <div id="ordersListView">
+    <div class="date-filter-row">
+      <div class="field" style="flex:1;">
+        <label>إلى</label>
+        <input type="date" id="dateTo" class="date-input">
+      </div>
+      <div class="field" style="flex:1;">
+        <label>من</label>
+        <input type="date" id="dateFrom" class="date-input">
+      </div>
+    </div>
+
+    <div class="search-row">
+      <button class="search-btn" onclick="applySearch()"><i class="fa-solid fa-magnifying-glass"></i></button>
+      <input type="text" id="ordersSearch" placeholder="بحث" oninput="applySearch()">
+    </div>
+
+    <div class="tabs count-tabs">
+      <button class="tab-btn" onclick="filterOrders('rejected', this)">مرفوض <span class="count-pill" id="cnt-rejected">0</span></button>
+      <button class="tab-btn" onclick="filterOrders('pending', this)">انتظار <span class="count-pill" id="cnt-pending">0</span></button>
+      <button class="tab-btn" onclick="filterOrders('accepted', this)">مقبول <span class="count-pill" id="cnt-accepted">0</span></button>
+      <button class="tab-btn active" onclick="filterOrders('all', this)">الكل <span class="count-pill" id="cnt-all">0</span></button>
+    </div>
+
+    <div class="orders-total-pill"><span>$<span id="ordersTotal">0.00</span></span><span class="lbl">إجمالي :</span></div>
+
+    <div id="ordersList"></div>
+  </div>
+
+  <!-- ===== 2) تفاصيل الطلب ===== -->
+  <div id="orderDetailView" style="display:none;">
+    <button class="back-pill" onclick="backToList()"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
+    <div class="section-header" style="margin-top:0;"><div class="section-title">تفاصيل الطلب</div></div>
+
+    <div class="detail-row">
+      <span class="lbl">رقم العملية</span>
+      <span class="val mono" id="dOrderId">—</span>
+    </div>
+    <div class="detail-row">
+      <button class="copy-mini" onclick="copyDetailField('dTrack')"><i class="fa-regular fa-copy"></i></button>
+      <span class="val mono" id="dTrack" dir="ltr">—</span>
+      <span class="lbl">رقم التتبع 🔖</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">المنتج</span>
+      <span class="val" id="dProduct">—</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">الفئة</span>
+      <span class="val" id="dCategory">—</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">الكمية</span>
+      <span class="val" id="dQty">—</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">السعر الإجمالي</span>
+      <span class="val accent" id="dPrice">—</span>
+    </div>
+    <div class="detail-row">
+      <span class="lbl">التاريخ</span>
+      <span class="val mono" id="dDate">—</span>
+    </div>
+    <div class="detail-row" id="dPlayerIdRow" style="display:none;">
+      <button class="copy-mini" onclick="copyDetailField('dPlayerId')"><i class="fa-regular fa-copy"></i></button>
+      <span class="val mono" id="dPlayerId">—</span>
+      <span class="lbl">playerId</span>
+    </div>
+
+    <div class="detail-row response">
+      <div class="top">
+        <span id="dStatusChip" class="status-badge processing"><i class="fa-solid fa-spinner fa-spin"></i> قيد التنفيذ</span>
+        <span class="lbl" id="dResponseTime">—</span>
+      </div>
+    </div>
+
+    <div class="detail-row reply-row" id="dReplyRow" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span class="lbl">📩 رد المزوّد</span>
+        <span class="lbl poll-note" id="dPollNote" style="display:none;">🔄 متابعة تلقائية كل 15 ثانية…</span>
+      </div>
+      <div id="dReplyList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <span id="dReplyChip"></span>
+    </div>
+
+    <button class="btn btn-sm mt-10" id="dRefreshBtn" style="display:none; width:100%;" onclick="refreshFromDetail()">
+      <i class="fa-solid fa-rotate"></i> تحديث الحالة
+    </button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-items">
+    <a href="/store.html" class="nav-item" id="navHome"><i class="fa-solid fa-house"></i><span>الرئيسية</span></a>
+    <a href="/wallet.html" class="nav-item" id="navWallet"><i class="fa-solid fa-wallet"></i><span>المحفظة</span></a>
+    <a href="/deposit.html" class="nav-item" id="navDeposit"><i class="fa-solid fa-credit-card"></i><span data-ar="إيداع" data-en="Deposit">إيداع</span></a>
+    <a href="/orders.html" class="nav-item active" id="navOrders"><i class="fa-solid fa-bag-shopping"></i><span>طلباتي</span></a>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  const STATUS_LABEL = { processing:"قيد التنفيذ", completed:"مكتمل", failed:"فشل", pending:"بانتظار المراجعة", accepted:"مقبول", rejected:"مرفوض" };
+  const STATUS_ICON = { processing:"fa-spinner fa-spin", completed:"fa-circle-check", failed:"fa-circle-xmark", pending:"fa-clock", accepted:"fa-circle-check", rejected:"fa-circle-xmark" };
+
+  let allOrders = [];
+  let _rate = 10000;
+
+  async function loadOrders(){
+    try{
+      const [ordersRes, settingsRes] = await Promise.all([apiFetch("/orders"), apiFetch("/store/settings")]);
+      allOrders = ordersRes;
+      _rate = settingsRes.exchange_rate || 10000;
+    }catch(err){ toast("تعذّر تحميل طلباتك","error"); return; }
+    renderOrders();
+  }
+
+  let currentStatusFilter = "all";
+
+  function filterOrders(status, btn){
+    currentStatusFilter = status;
+    document.querySelectorAll(".count-tabs .tab-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    renderOrders();
+  }
+
+  function applySearch(){ renderOrders(); }
+
+  function getFilteredOrders(){
+    const from = document.getElementById("dateFrom").value;
+    const to = document.getElementById("dateTo").value;
+    const q = (document.getElementById("ordersSearch").value || "").trim().toLowerCase();
+
+    return allOrders.filter(o=>{
+      if(currentStatusFilter !== "all" && o.status !== currentStatusFilter) return false;
+      if(from && o.date < from) return false;
+      if(to && o.date > (to + " 23:59:59")) return false;
+      if(q){
+        const hay = `${o.product_name} ${o.category_name} ${o.player_id||''} #${o.id} ${o.track||''}`.toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function updateCounts(){
+    const counts = { all:0, accepted:0, pending:0, rejected:0 };
+    allOrders.forEach(o=>{ counts.all++; if(counts[o.status]!==undefined) counts[o.status]++; });
+    Object.keys(counts).forEach(k=>{
+      const el = document.getElementById("cnt-"+k);
+      if(el) el.textContent = counts[k];
+    });
+  }
+
+  function renderOrders(){
+    updateCounts();
+    const box = document.getElementById("ordersList");
+    const items = getFilteredOrders();
+
+    const total = items.reduce((s,o)=> s + (o.price_syp / _rate), 0);
+    document.getElementById("ordersTotal").textContent = total.toFixed(3);
+
+    if(!items.length){
+      box.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open"></i><div class="t">لا توجد طلبات هنا</div><div class="s">لما تشتري شي رح يظهر هون</div></div>`;
+      return;
+    }
+    box.innerHTML = items.map(o => `
+      <div class="order-card" id="orderCard_${o.id}">
+        <div class="order-top">
+          <div>
+            <div class="order-name">${o.product_name}</div>
+            <div class="order-id">#${o.id} ${o.source==='api' ? '<span style="color:var(--success);font-size:9px;"> • API</span>' : '<span style="color:var(--muted);font-size:9px;"> • يدوي</span>'}</div>
+            <div class="order-id" dir="ltr" style="font-family:monospace; font-size:10px; color:var(--accent);">🔖 ${o.track||''}</div>
+          </div>
+          <span class="status-badge ${o.raw_status}"><i class="fa-solid ${STATUS_ICON[o.raw_status]||'fa-circle'}"></i> ${STATUS_LABEL[o.raw_status]||o.raw_status}</span>
+        </div>
+        <div class="order-meta">
+          <span><i class="fa-solid fa-tag"></i> ${o.category_name}</span>
+          ${o.player_id ? `<span><i class="fa-solid fa-id-card"></i> ${o.player_id}</span>` : ''}
+          <span><i class="fa-solid fa-cubes"></i> ${o.qty}</span>
+          <span><i class="fa-regular fa-clock"></i> ${o.date}</span>
+        </div>
+        <div class="hero-divider"></div>
+        <div class="flex items-center" style="justify-content:space-between;">
+          <span class="order-price">$${(o.price_syp / _rate).toFixed(2)}</span>
+          <div style="display:flex;gap:6px;">
+            ${o.source==='api' && o.status==='pending' ? `<button class="btn-sm" id="refreshBtn_${o.id}" onclick="refreshOrder(${o.id},this)"><i class="fa-solid fa-rotate"></i> تحديث</button>` : ''}
+            <button class="btn-sm" onclick="viewDetail(${o.id})"><i class="fa-solid fa-eye"></i> تفاصيل</button>
+          </div>
+        </div>
+      </div>`).join("");
+  }
+
+  function refreshToast(r){
+    if(r.status === "completed"){ toast("✅ تم الشحن بنجاح!", "success"); return; }
+    if(r.status === "failed" || r.status === "rejected"){ toast("❌ فشل الطلب — تم استرجاع رصيدك", "error"); return; }
+    toast("📩 وصل رد جديد من المزوّد");
+  }
+
+  async function refreshOrder(id, btn){
+    btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+    try{
+      const r = await apiFetch(`/orders/${id}/refresh`);
+      if(r.changed){
+        refreshToast(r);
+        await loadOrders();
+      }else{
+        toast("لا يوجد تحديث بعد، حاول لاحقاً");
+        btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-rotate"></i> تحديث';
+      }
+    }catch(err){ toast(err.message,"error"); btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-rotate"></i> تحديث'; }
+  }
+
+  let currentDetailId = null;
+  let pollTimer = null;
+  let lastReplyKey = "";
+
+  function replyItemsHTML(items){
+    const meta = {
+      phone: {icon:"fa-phone", label:"📱 رقم الاستلام", cls:"reply-phone"},
+      code: {icon:"fa-key", label:"🔑 رمز التحقق", cls:"reply-code"},
+      text: {icon:"fa-comment-dots", label:"💬 رد المزوّد", cls:"reply-text-item"},
+    };
+    return items.map(it=>{
+      const m = meta[it.kind] || meta.text;
+      const safe = String(it.text ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return `<div class="reply-item ${m.cls}">
+        <div class="ri-icon"><i class="fa-solid ${m.icon}"></i></div>
+        <div class="ri-body"><div class="ri-label">${m.label}</div><div class="ri-value" dir="auto">${safe}</div></div>
+        <button class="copy-mini" onclick="copyReplyItem(this)" title="نسخ"><i class="fa-regular fa-copy"></i></button>
+      </div>`;
+    }).join("");
+  }
+
+  function copyReplyItem(btn){
+    const v = btn.closest(".reply-item")?.querySelector(".ri-value")?.textContent || "";
+    if(!v.trim()) return;
+    navigator.clipboard.writeText(v.trim()).then(()=> toast("تم نسخ الرد ✅"));
+  }
+
+  function paintReply(d){
+    const items = d.reply_items || [];
+    const row = document.getElementById("dReplyRow");
+    if(!items.length){ row.style.display = "none"; return ""; }
+    row.style.display = "flex";
+    document.getElementById("dReplyList").innerHTML = replyItemsHTML(items);
+    const chip = document.getElementById("dReplyChip");
+    if(d.status === "accepted"){
+      chip.innerHTML = `<span class="success-chip"><i class="fa-solid fa-circle-check"></i> تم الشحن بنجاح</span>`;
+    }else if(d.status === "rejected"){
+      chip.innerHTML = `<span class="fail-chip"><i class="fa-solid fa-circle-xmark"></i> فشل الطلب</span>`;
+    }else{
+      chip.innerHTML = `<span class="pending-chip"><i class="fa-solid fa-hourglass-half"></i> بانتظار الرد التالي من المزوّد…</span>`;
+    }
+    return items.map(i=>i.kind+":"+i.text).join("|");
+  }
+
+  function stopPoll(){
+    if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+    const n = document.getElementById("dPollNote");
+    if(n) n.style.display = "none";
+  }
+
+  function startPoll(){
+    stopPoll();
+    const n = document.getElementById("dPollNote");
+    if(n) n.style.display = "";
+    pollTimer = setInterval(pollDetailSilent, 15000);
+  }
+
+  async function pollDetailSilent(){
+    if(!currentDetailId) return stopPoll();
+    try{
+      const r = await apiFetch(`/orders/${currentDetailId}/refresh`);
+      if(!r.changed) return;
+      const key = (r.reply_items||[]).map(i=>i.kind+":"+i.text).join("|");
+      const isNew = key && key !== lastReplyKey;
+      lastReplyKey = key;
+      await loadOrders();
+      await viewDetail(currentDetailId);
+      if(r.status === "completed") toast("✅ تم الشحن بنجاح!", "success");
+      else if(r.status === "failed" || r.status === "rejected") toast("❌ فشل الطلب — تم استرجاع رصيدك", "error");
+      else if(isNew) toast("📩 وصل رد جديد من المزوّد");
+    }catch(e){ /* فشل صامت — تُعاد المحاولة بعد 15 ثانية */ }
+  }
+
+  async function viewDetail(id){
+    try{
+      const d = await apiFetch(`/orders/${id}/detail`);
+      currentDetailId = id;
+
+      document.getElementById("ordersListView").style.display = "none";
+      document.getElementById("ordersPageHead").style.display = "none";
+      document.getElementById("orderDetailView").style.display = "block";
+
+      document.getElementById("dOrderId").textContent = d.ext_order_id ? `ID_${d.ext_order_id}` : `#${d.id}`;
+      document.getElementById("dTrack").textContent = d.track || `TRK-${d.id}`;
+      document.getElementById("dProduct").textContent = d.product_name;
+      document.getElementById("dCategory").textContent = d.category_name;
+      document.getElementById("dQty").textContent = d.qty;
+      document.getElementById("dPrice").textContent = "$" + d.price_usd;
+      document.getElementById("dDate").textContent = d.date;
+
+      const playerRow = document.getElementById("dPlayerIdRow");
+      if(d.player_id){
+        playerRow.style.display = "flex";
+        document.getElementById("dPlayerId").textContent = d.player_id;
+      }else{
+        playerRow.style.display = "none";
+      }
+
+      const chip = document.getElementById("dStatusChip");
+      chip.className = "status-badge " + d.raw_status;
+      chip.innerHTML = `<i class="fa-solid ${STATUS_ICON[d.raw_status]||'fa-circle'}"></i> ${STATUS_LABEL[d.raw_status]||d.raw_status}`;
+      document.getElementById("dResponseTime").textContent = d.response_time_text
+        ? `مدة الاستجابة: ${d.response_time_text}`
+        : (d.source === "api" ? "بانتظار رد المزوّد..." : "");
+
+      lastReplyKey = paintReply(d);
+
+      const refreshBtn = document.getElementById("dRefreshBtn");
+      refreshBtn.style.display = (d.source === "api" && d.status === "pending") ? "block" : "none";
+
+      if(d.source === "api" && d.status === "pending") startPoll(); else stopPoll();
+
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }catch(err){ toast("تعذّر جلب التفاصيل","error"); }
+  }
+
+  function backToList(){
+    stopPoll();
+    document.getElementById("orderDetailView").style.display = "none";
+    document.getElementById("ordersListView").style.display = "block";
+    document.getElementById("ordersPageHead").style.display = "block";
+    currentDetailId = null;
+  }
+
+  function copyDetailField(elId){
+    const txt = document.getElementById(elId).textContent;
+    if(!txt) return;
+    navigator.clipboard.writeText(txt).then(()=> toast("تم النسخ ✅"));
+  }
+
+  async function refreshFromDetail(){
+    if(!currentDetailId) return;
+    const btn = document.getElementById("dRefreshBtn");
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحديث...';
+    try{
+      const r = await apiFetch(`/orders/${currentDetailId}/refresh`);
+      if(r.changed){
+        refreshToast(r);
+        await loadOrders();
+        await viewDetail(currentDetailId);
+      }else{
+        toast("لا يوجد تحديث بعد، حاول لاحقاً");
+      }
+    }catch(err){ toast(err.message,"error"); }
+    finally{ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-rotate"></i> تحديث الحالة'; }
+  }
+
+  document.addEventListener("DOMContentLoaded", async ()=>{
+    if(!Store.token()){ toast("سجّل دخولك لعرض طلباتك","error"); setTimeout(()=>location.href="/login.html",700); return; }
+    document.getElementById("dateFrom").addEventListener("change", renderOrders);
+    document.getElementById("dateTo").addEventListener("change", renderOrders);
+    await loadOrders();
+    // فتح تفاصيل طلب محدد مباشرة (بعد إتمام الشراء يُوجَّه المستخدم لرد المزوّد)
+    const viewId = new URLSearchParams(location.search).get("view");
+    if(viewId && /^\d+$/.test(viewId)){
+      history.replaceState(null, "", "/orders.html");
+      viewDetail(Number(viewId));
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>إيداع رصيد | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+</head>
+<body>
+
+<div id="drawer" class="drawer">
+  <div class="drawer-user">
+    <div class="drawer-avatar"><i class="fa-solid fa-user"></i></div>
+    <div id="drawerUserName" class="drawer-user-name">زائر</div>
+    <div id="drawerUserEmail" class="drawer-user-email">سجّل دخولك للاستفادة من المحفظة والطلبات</div>
+    <div id="drawerAuthButtons" style="display:flex; flex-direction:column;">
+      <button class="drawer-btn primary" onclick="goLogin(event)"><i class="fa-solid fa-right-to-bracket"></i> تسجيل دخول</button>
+      <button class="drawer-btn ghost" onclick="goRegister(event)"><i class="fa-solid fa-user-plus"></i> حساب جديد</button>
+    </div>
+    <div id="logoutBox" style="display:none; margin-top:8px;">
+      <button class="drawer-btn ghost" onclick="logoutUser(event)"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="guest-hide">
+    <div class="drawer-group-label">رئيسي</div>
+    <a href="/store.html" class="drawer-item"><i class="fa-solid fa-house"></i> الرئيسية</a>
+    <a href="/orders.html" class="drawer-item"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
+    <a href="/wallet.html" class="drawer-item"><i class="fa-solid fa-wallet"></i> المحفظة</a>
+    <a href="/deposit.html" class="drawer-item"><i class="fa-solid fa-credit-card"></i> إيداع رصيد</a>
+  </div>
+  <div class="drawer-group-label">معلومات</div>
+  <a href="https://t.me/aboudy2312" target="_blank" class="drawer-item"><i class="fa-brands fa-telegram"></i> الدعم (تيليجرام)</a>
+  <a href="https://wa.me/96181302718" target="_blank" class="drawer-item"><i class="fa-brands fa-whatsapp"></i> الدعم (واتساب)</a>
+  <div id="ownerAdminMenuItem" style="display:none;">
+    <div class="drawer-group-label">الإدارة</div>
+    <a href="/admin.html" class="drawer-item"><i class="fa-solid fa-user-shield"></i> لوحة الأدمن</a>
+  </div>
+
+  <div class="toggle-row"><button onclick="toggleTheme()"><i class="fa-solid fa-moon"></i> الوضع الليلي</button></div>
+  <div class="drawer-footer"><img src="assets/dev-logo.png" alt="" class="dev-logo" onerror="this.style.display='none'"><div style="margin-top:6px;">برمجة وتصميم</div><a href="https://t.me/aboudy2312" target="_blank"><i class="fa-brands fa-telegram"></i> @aboudy2312</a><div style="margin-top:4px;">2026</div></div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleDrawer(false)"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="left-group">
+      <div class="menu-btn" onclick="toggleDrawer(true)"><span></span><span></span><span></span></div>
+      <div class="logo"><div class="logo-word">ARAB <b>STORE</b></div></div>
+    </div>
+    <div class="user-box">
+      <div class="icon-btn" id="notifBellBtn"><i class="fa-solid fa-bell"></i><span class="badge-dot" id="notifBadge" style="display:none;">0</span></div>
+      <div class="balance-pill"><i class="fa-solid fa-coins"></i><span id="balancePillValue">$0.00</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-head" id="depositPageHead">
+    <h1><i class="fa-solid fa-credit-card" style="color:var(--accent)"></i> إيداع رصيد</h1>
+    <p>اختر طريقة الدفع المناسبة إلك وحوّل المبلغ مباشرة لمحفظتك</p>
+  </div>
+
+  <!-- ===== 1) شبكة طرق الإيداع ===== -->
+  <div id="methodsGridView">
+    <div class="section-header"><div class="section-title"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--accent); margin-left:6px;"></i> اختر وسيلة الإيداع</div></div>
+    <div id="methodsGrid" class="deposit-grid"></div>
+  </div>
+
+  <!-- ===== 2) صفحة تفاصيل الطريقة المختارة ===== -->
+  <div id="methodDetailView" style="display:none;">
+    <a href="#" onclick="backToGrid(); return false;" class="back-btn" style="margin-bottom:14px;"><i class="fa-solid fa-arrow-right"></i></a>
+
+    <div class="method-banner" id="methodBanner">
+      <span class="method-verified-chip"><i class="fa-solid fa-circle-check"></i> طريقة معتمدة</span>
+    </div>
+
+    <div class="method-detail-title"><i class="fa-solid fa-money-bill-wave" id="methodDetailIcon"></i><span id="methodDetailTitle">اسم الطريقة</span></div>
+
+    <div class="panel" id="manualInfoPanel" style="display:none;">
+      <div class="panel-head"><h3><i class="fa-solid fa-circle-info" style="color:var(--accent); margin-left:6px;"></i> معلومات التحويل</h3></div>
+      <div class="text-muted" style="font-size:10.5px; margin-bottom:4px;">Transfer code</div>
+      <div class="copy-box"><span id="transferCode" style="font-size:12px;">—</span><button onclick="copyTransferCode()"><i class="fa-solid fa-copy"></i></button></div>
+      <div id="manualInstructions" style="font-size:11px; color:var(--muted); line-height:1.9; margin-top:12px; border-top:1px dashed var(--border-soft); padding-top:12px;"></div>
+    </div>
+
+    <div id="autoInfoPanel" class="info-banner" style="display:none;">
+      <i class="fa-solid fa-bolt"></i>
+      <div>الإيداع التلقائي يضيف الرصيد <b>مباشرة بعد التحقق</b> من كود العملية، بدون انتظار مراجعة الأدمن.</div>
+    </div>
+
+    <!-- ===== واجهة "إنشاء فاتورة" (شام كاش وما شابهها) ===== -->
+    <div id="invoicePanel" style="display:none;">
+      <div class="panel" style="padding:16px; margin-top:14px;">
+        <div class="field">
+          <label><i class="fa-solid fa-money-bill-transfer" style="color:var(--accent);"></i> اختر العملة التي ستدفع بها:</label>
+          <select id="invoiceCurrency" style="width:100%; padding:13px; border-radius:12px; border:1px solid var(--border); background:var(--card-soft); color:var(--text); font-size:12.5px;">
+            <option value="USD">الدولار الأمريكي (USD)</option>
+            <option value="SYP">ليرة سورية شام كاش (ل.س)</option>
+          </select>
+        </div>
+
+        <div class="field mt-10">
+          <label id="invoiceAmountLabel"><i class="fa-solid fa-dollar-sign" style="color:var(--accent);"></i> المبلغ الذي ستدفعه بالدولار:</label>
+          <div class="input-wrap">
+            <input type="number" id="invoiceAmount" placeholder="مثال: 10" min="0.3" step="0.01">
+            <i class="fa-solid fa-sack-dollar"></i>
+          </div>
+          <div class="field-hint" id="invoiceAmountHint">أقل مبلغ: 0.30$</div>
+        </div>
+
+        <button class="btn-invoice-create mt-10" id="invoiceSubmitBtn" onclick="submitInvoice()">
+          <i class="fa-solid fa-file-circle-plus"></i> إنشاء فاتورة
+        </button>
+      </div>
+    </div>
+
+    <div class="panel" id="manualDepositForm" style="padding:16px; margin-top:14px;">
+      <div class="field">
+        <label><i class="fa-solid fa-hashtag" style="color:var(--accent);"></i> رقم العملية / TXID</label>
+        <div class="input-wrap">
+          <input type="text" id="depCode" placeholder="أدخل رقم العملية أو معرف التحويل">
+          <i class="fa-solid fa-hashtag"></i>
+        </div>
+      </div>
+
+      <div class="field mt-10">
+        <label id="depAmountLabel"><i class="fa-solid fa-dollar-sign" style="color:var(--accent);"></i> المبلغ (USD)</label>
+        <div class="input-wrap">
+          <input type="number" id="depAmount" placeholder="مثال: 10" min="1" step="0.01">
+          <i class="fa-solid fa-dollar-sign" id="depAmountIcon"></i>
+        </div>
+        <div class="field-hint" id="depAmountSyp">يعادل 0 ل.س</div>
+      </div>
+
+      <div class="info-banner" style="margin-top:14px;">
+        <i class="fa-solid fa-bolt"></i>
+        <div>سيتم إضافة الرصيد تلقائياً بالليرة السورية مقابل الدولار</div>
+      </div>
+
+      <button class="btn btn-primary mt-10" id="depSubmitBtn" onclick="submitDeposit()">
+        <i class="fa-solid fa-paper-plane"></i> تأكيد الإيداع
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-items">
+    <a href="/store.html" class="nav-item" id="navHome"><i class="fa-solid fa-house"></i><span>الرئيسية</span></a>
+    <a href="/wallet.html" class="nav-item" id="navWallet"><i class="fa-solid fa-wallet"></i><span>المحفظة</span></a>
+    <a href="/deposit.html" class="nav-item active" id="navDeposit"><i class="fa-solid fa-credit-card"></i><span data-ar="إيداع" data-en="Deposit">إيداع</span></a>
+    <a href="/orders.html" class="nav-item" id="navOrders"><i class="fa-solid fa-bag-shopping"></i><span>طلباتي</span></a>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  let AUTO_METHODS = [];
+  let MANUAL_METHODS = [];
+  let selectedMethod = null;   // { id, title, kind, image, code, sub }
+
+  const ART_CLASSES = ["art-red","art-gold","art-purple","art-green","art-blue","art-pink"];
+
+  let DEPOSIT_RATE = 0;
+  async function loadMethods(){
+    try{
+      const s = await apiFetch("/store/settings");
+      DEPOSIT_RATE = s.exchange_rate || 0;
+      Currency.setRate(DEPOSIT_RATE);
+    }catch(err){ DEPOSIT_RATE = Currency.rate(); }
+    try{
+      const data = await apiFetch("/wallet/deposit-methods");
+      AUTO_METHODS = (data.auto || []).map(m => ({
+        id: m.id, title: m.title, sub: m.description || "تحقق تلقائي فوري من كود العملية",
+        image: m.image || "", code: m.code || "", icon: "fa-bolt", kind:"auto",
+        gatewayType: m.gateway_type || "verify", currency: m.input_currency || "usd"
+      }));
+      MANUAL_METHODS = (data.manual || []).map(m => ({
+        id: m.id, title: m.title, sub: m.description || "مراجعة يدوية من فريق الدعم",
+        image: m.image || "", code: m.code || "", icon: "fa-money-bill-transfer", kind:"manual",
+        currency: m.input_currency || "usd"
+      }));
+      renderGrid();
+    }catch(err){ toast(err.message, "error"); }
+  }
+
+  function tileArt(m, idx){
+    if(m.image){
+      return `<img src="${m.image}" alt="${m.title}">`;
+    }
+    return `<i class="fa-solid ${m.icon}"></i>`;
+  }
+
+  function renderGrid(){
+    const all = [...AUTO_METHODS, ...MANUAL_METHODS];
+    const grid = document.getElementById("methodsGrid");
+    if(!all.length){
+      grid.outerHTML = `<div class="empty-state"><i class="fa-solid fa-hand-holding-dollar"></i><div class="t">لا توجد طرق إيداع متاحة حالياً</div></div>`;
+      return;
+    }
+    grid.innerHTML = all.map((m, i) => `
+      <div class="deposit-tile" onclick="openMethod('${m.kind}', ${m.id})">
+        <div class="deposit-tile-art ${ART_CLASSES[i % ART_CLASSES.length]}">
+          <span class="deposit-tile-badge ${m.kind==='manual' ? 'manual' : ''}"><i class="fa-solid ${m.kind==='manual' ? 'fa-clock' : 'fa-bolt'}"></i> ${m.kind==='manual' ? 'يدوي' : 'تلقائي'}</span>
+          ${tileArt(m, i)}
+        </div>
+        <div class="deposit-tile-name"><i class="fa-solid ${m.icon}"></i> ${m.title}</div>
+      </div>`).join("");
+  }
+
+  function openMethod(kind, id){
+    const list = kind === "auto" ? AUTO_METHODS : MANUAL_METHODS;
+    const m = list.find(x => x.id === id);
+    if(!m) return;
+    selectedMethod = m;
+
+    document.getElementById("methodsGridView").style.display = "none";
+    document.getElementById("depositPageHead").style.display = "none";
+    document.getElementById("methodDetailView").style.display = "block";
+
+    document.getElementById("methodDetailTitle").textContent = m.title;
+    document.getElementById("methodDetailIcon").className = "fa-solid " + m.icon;
+
+    const banner = document.getElementById("methodBanner");
+    const chip = banner.querySelector(".method-verified-chip");
+    const idx = (kind==="auto" ? AUTO_METHODS : MANUAL_METHODS).indexOf(m);
+    banner.className = "method-banner " + ART_CLASSES[idx % ART_CLASSES.length];
+    banner.innerHTML = (m.image ? `<img src="${m.image}" alt="${m.title}">` : `<i class="fa-solid ${m.icon}"></i>`) + chip.outerHTML;
+
+    document.getElementById("manualInfoPanel").style.display = (m.code || m.sub) ? "block" : "none";
+    document.getElementById("autoInfoPanel").style.display = (kind === "auto" && m.gatewayType !== "invoice") ? "flex" : "none";
+    document.getElementById("transferCode").textContent = m.code || "—";
+    document.getElementById("manualInstructions").innerHTML = (m.sub || "").replace(/\n/g, "<br>");
+
+    const isInvoice = kind === "auto" && m.gatewayType === "invoice";
+    document.getElementById("invoicePanel").style.display = isInvoice ? "block" : "none";
+    document.getElementById("manualDepositForm").style.display = isInvoice ? "none" : "block";
+    if(isInvoice){
+      document.getElementById("invoiceAmount").value = "";
+      document.getElementById("invoiceCurrency").value = "USD";
+      syncInvoiceCurrencyUI();
+    }
+
+    document.getElementById("depCode").value = "";
+    document.getElementById("depAmount").value = "";
+    // نبدّل التسمية والأيقونة حسب عملة إدخال الطريقة المختارة (دولار أو ليرة سورية)
+    const label = document.getElementById("depAmountLabel");
+    const icon = document.getElementById("depAmountIcon");
+    if(m.currency === "syp"){
+      label.innerHTML = '<i class="fa-solid fa-coins" style="color:var(--accent);"></i> المبلغ (ل.س)';
+      icon.className = "fa-solid fa-coins";
+      document.getElementById("depAmount").placeholder = "مثال: 138000";
+      document.getElementById("depAmountSyp").textContent = DEPOSIT_RATE ? `يعادل 0$` : "";
+    }else{
+      label.innerHTML = '<i class="fa-solid fa-dollar-sign" style="color:var(--accent);"></i> المبلغ (USD)';
+      icon.className = "fa-solid fa-dollar-sign";
+      document.getElementById("depAmount").placeholder = "مثال: 10";
+      document.getElementById("depAmountSyp").textContent = "يعادل 0 ل.س";
+    }
+    window.scrollTo({ top:0, behavior:"smooth" });
+  }
+
+  function backToGrid(){
+    document.getElementById("methodDetailView").style.display = "none";
+    document.getElementById("methodsGridView").style.display = "block";
+    document.getElementById("depositPageHead").style.display = "block";
+    selectedMethod = null;
+  }
+
+  function copyTransferCode(){
+    const txt = document.getElementById("transferCode").textContent;
+    if(!txt || txt === "—") return;
+    navigator.clipboard.writeText(txt).then(()=> toast("تم نسخ الكود ✅"));
+  }
+
+  document.getElementById("depAmount").addEventListener("input", (e)=>{
+    const v = Number(e.target.value || 0);
+    if(!selectedMethod || selectedMethod.currency !== "syp"){
+      document.getElementById("depAmountSyp").textContent = `يعادل ${Math.round(v * DEPOSIT_RATE).toLocaleString()} ل.س`;
+    }else{
+      const usdEquivalent = DEPOSIT_RATE ? (v / DEPOSIT_RATE) : 0;
+      document.getElementById("depAmountSyp").textContent = `يعادل ${usdEquivalent.toFixed(2)}$`;
+    }
+  });
+
+  function syncInvoiceCurrencyUI(){
+    const c = document.getElementById("invoiceCurrency").value;
+    const label = document.getElementById("invoiceAmountLabel");
+    const hint = document.getElementById("invoiceAmountHint");
+    const rate = (Currency.rate && Currency.rate()) || 13800;
+    if(c === "SYP"){
+      label.innerHTML = '<i class="fa-solid fa-dollar-sign" style="color:var(--accent);"></i> المبلغ الذي ستدفعه بالليرة السورية:';
+      hint.textContent = `أقل مبلغ: ${Math.round(0.3 * rate).toLocaleString()} ل.س`;
+    } else {
+      label.innerHTML = '<i class="fa-solid fa-dollar-sign" style="color:var(--accent);"></i> المبلغ الذي ستدفعه بالدولار:';
+      hint.textContent = "أقل مبلغ: 0.30$";
+    }
+  }
+  document.getElementById("invoiceCurrency").addEventListener("change", syncInvoiceCurrencyUI);
+
+  async function submitInvoice(){
+    if(!Store.token()){ toast("سجّل دخولك أولاً", "error"); setTimeout(()=>location.href="/login.html", 600); return; }
+    if(!selectedMethod){ toast("اختر طريقة إيداع أولاً", "error"); return; }
+    const currency = document.getElementById("invoiceCurrency").value;
+    const amount = Number(document.getElementById("invoiceAmount").value || 0);
+    if(!amount || amount <= 0){ toast("أدخل مبلغ صحيح", "error"); return; }
+
+    const btn = document.getElementById("invoiceSubmitBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري إنشاء الفاتورة...';
+
+    try{
+      const res = await apiFetch("/wallet/deposit/create-invoice", {
+        method: "POST",
+        body: JSON.stringify({ method_id: selectedMethod.id, amount, currency })
+      });
+      toast("✅ تم إنشاء الفاتورة، جاري تحويلك لصفحة الدفع...");
+      setTimeout(()=>{ window.location.href = res.payment_url; }, 700);
+    }catch(err){
+      toast(err.message || "تعذّر إنشاء الفاتورة", "error");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-file-circle-plus"></i> إنشاء فاتورة';
+    }
+  }
+
+  async function submitDeposit(){
+    if(!Store.token()){ toast("سجّل دخولك أولاً", "error"); setTimeout(()=>location.href="/login.html", 600); return; }
+    if(!selectedMethod){ toast("اختر طريقة إيداع أولاً", "error"); return; }
+    const amount = Number(document.getElementById("depAmount").value || 0);
+    const code = document.getElementById("depCode").value.trim();
+    if(!amount || amount <= 0){ toast("أدخل مبلغ صحيح", "error"); return; }
+    if(!code){ toast("أدخل رقم العملية / TXID", "error"); return; }
+
+    const btn = document.getElementById("depSubmitBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...';
+
+    try{
+      const res = await apiFetch("/wallet/deposit", {
+        method: "POST",
+        body: JSON.stringify({
+          method_id: selectedMethod.id,
+          kind: selectedMethod.kind,
+          amount_usd: amount,
+          transaction_code: code
+        })
+      });
+      toast("✅ " + res.message);
+      document.getElementById("depAmount").value = "";
+      document.getElementById("depCode").value = "";
+      setTimeout(()=> location.href="/wallet.html", 1200);
+    }catch(err){
+      toast(err.message || "تعذّر إرسال طلب الإيداع", "error");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> تأكيد الإيداع';
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadMethods);
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>حساب جديد | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+<style>body{ padding-bottom:0; }</style>
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-top">
+    <div class="auth-logo"><div class="logo-word" style="font-size:22px;">ARAB <b>STORE</b></div></div>
+    <div class="auth-title">أنشئ حسابك بثواني ⚡</div>
+    <div class="auth-sub">حساب واحد لكل طلباتك ومحفظتك الرقمية</div>
+  </div>
+
+  <div class="auth-card">
+    <form id="registerForm" onsubmit="return handleRegister(event)">
+      <div class="field">
+        <label>الاسم الكامل</label>
+        <div class="input-wrap">
+          <input type="text" id="regName" placeholder="مثال: محمد العلي" required>
+          <i class="fa-solid fa-user"></i>
+        </div>
+      </div>
+
+      <div class="field mt-10">
+        <label>البريد الإلكتروني</label>
+        <div class="input-wrap">
+          <input type="email" id="regEmail" placeholder="example@email.com" required>
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+      </div>
+
+      <div class="field mt-10">
+        <label>كلمة المرور</label>
+        <div class="input-wrap">
+          <input type="password" id="regPassword" placeholder="6 أحرف على الأقل" minlength="6" required>
+          <i class="fa-solid fa-lock"></i>
+          <button type="button" class="toggle-eye" onclick="togglePw('regPassword', this)"><i class="fa-solid fa-eye"></i></button>
+        </div>
+        <div class="field-hint">استخدم كلمة مرور قوية ولا تشاركها مع أحد</div>
+      </div>
+
+      <div class="field mt-10">
+        <label>البلد</label>
+        <div class="input-wrap">
+          <select id="regCountry" required style="width:100%; padding:11px 38px 11px 11px; border-radius:11px; border:1px solid var(--border); background:var(--card-soft); color:var(--text);"></select>
+        </div>
+      </div>
+
+      <div class="field mt-10">
+        <label>رقم الهاتف</label>
+        <div class="input-wrap">
+          <input type="tel" id="regPhone" placeholder="9XXXXXXXX" required>
+          <i class="fa-solid fa-phone"></i>
+        </div>
+        <div class="field-hint">سيتم حفظ الرقم مع مقدمة البلد المختار: <b id="dialPreview">+963</b></div>
+        <div class="field-error" id="regError"></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary mt-10" id="regBtn">
+        <i class="fa-solid fa-user-plus"></i> إنشاء الحساب
+      </button>
+    </form>
+
+    <div class="auth-switch">عندك حساب مسبقاً؟ <a href="/login.html">سجّل دخولك</a></div>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  function togglePw(id, btn){
+    const input = document.getElementById(id);
+    const icon = btn.querySelector("i");
+    if(input.type === "password"){ input.type = "text"; icon.className = "fa-solid fa-eye-slash"; }
+    else{ input.type = "password"; icon.className = "fa-solid fa-eye"; }
+  }
+
+  const COUNTRIES = [
+    ["سوريا","SY","963"],["لبنان","LB","961"],["الأردن","JO","962"],["العراق","IQ","964"],
+    ["السعودية","SA","966"],["الإمارات","AE","971"],["الكويت","KW","965"],["قطر","QA","974"],
+    ["البحرين","BH","973"],["عُمان","OM","968"],["اليمن","YE","967"],["مصر","EG","20"],
+    ["فلسطين","PS","970"],["السودان","SD","249"],["ليبيا","LY","218"],["تونس","TN","216"],
+    ["الجزائر","DZ","213"],["المغرب","MA","212"],["موريتانيا","MR","222"],["الصومال","SO","252"],
+    ["جيبوتي","DJ","253"],["تركيا","TR","90"],["ألمانيا","DE","49"],["فرنسا","FR","33"],
+    ["السويد","SE","46"],["بريطانيا","GB","44"],["أمريكا","US","1"],["دولة أخرى","XX",""]
+  ];
+  function fillCountries(){
+    const sel = document.getElementById("regCountry");
+    sel.innerHTML = COUNTRIES.map(c => `<option value="${c[0]}" data-dial="${c[2]}">${c[0]}${c[2] ? " (+"+c[2]+")" : ""}</option>`).join("");
+    sel.addEventListener("change", ()=>{
+      const dial = sel.selectedOptions[0].dataset.dial;
+      document.getElementById("dialPreview").textContent = dial ? "+" + dial : "—";
+    });
+  }
+  document.addEventListener("DOMContentLoaded", fillCountries);
+
+  async function handleRegister(e){
+    e.preventDefault();
+    const btn = document.getElementById("regBtn");
+    const errEl = document.getElementById("regError");
+    errEl.style.display = "none";
+
+    const name = document.getElementById("regName").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const password = document.getElementById("regPassword").value;
+    const countrySel = document.getElementById("regCountry");
+    const country = countrySel.value;
+    const dial = countrySel.selectedOptions[0].dataset.dial || "";
+    let phone = document.getElementById("regPhone").value.replace(/[^\d+]/g, "");
+    if(dial && !phone.startsWith("+")) phone = "+" + dial + phone.replace(/^0+/, "");
+    if(phone.replace(/\D/g,"").length < 6){
+      errEl.textContent = "أدخل رقم هاتف صحيح"; errEl.style.display = "block"; return false;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإنشاء...';
+
+    try{
+      const data = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password, country, phone })
+      });
+      Store.setToken(data.token);
+      Store.setUser(Object.assign(data.user, { balance: data.user.balance_usd }));
+      toast("تم إنشاء الحساب بنجاح 🎉");
+      setTimeout(()=> location.href = "/store.html", 500);
+    }catch(err){
+      errEl.textContent = err.message || "تعذّر إنشاء الحساب، حاول مرة أخرى";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> إنشاء الحساب';
+    }
+    return false;
+  }
+</script>
+</body>
+</html>

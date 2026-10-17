@@ -1,0 +1,39 @@
+name: WhatsApp Connector
+
+# يشغّل موصل واتساب لدورة ~5h50m ثم يتوقف، ويعيد التشغيل تلقائياً كل 6 ساعات.
+# ملاحظة: للمستودعات الخاصة، دقائق Actions محدودة (2000/شهر) ولن تكفي للتشغيل الدائم.
+# اجعل المستودع عاماً (Public) للحصول على دقائق غير محدودة، أو استخدم استضافة دائمة (Dockerfile).
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: whatsapp-connector
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    defaults:
+      run:
+        working-directory: whatsapp-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install --omit=dev
+
+      - name: Run WhatsApp connector
+        env:
+          WA_SERVER: ${{ secrets.WA_SERVER }}
+          WA_SECRET: ${{ secrets.WA_SECRET }}
+          WA_RUN_MINUTES: "350"
+          WA_LOG_LEVEL: "info"
+        run: node index.mjs

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>منتجات API | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+<style>
+  .apip-search-row{ display:flex; gap:8px; margin-bottom:14px; }
+  .apip-refresh{ flex:0 0 auto; width:46px; height:46px; border:none; border-radius:12px; background:var(--accent); color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .apip-refresh.spin i{ animation: apip-spin 0.7s linear infinite; }
+  @keyframes apip-spin{ to{ transform:rotate(360deg); } }
+  .apip-search-wrap{ flex:1; position:relative; }
+  .apip-search-wrap input{ width:100%; height:46px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); padding:0 40px 0 14px; font-size:13px; }
+  .apip-search-wrap i{ position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); }
+  .apip-card{ background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .apip-card .apip-info{ flex:1; min-width:0; }
+  .apip-card .apip-name{ font-size:13.5px; font-weight:800; margin-bottom:6px; }
+  .apip-card .apip-cat{ font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .apip-tags{ display:flex; gap:6px; flex-wrap:wrap; }
+  .apip-tag{ font-size:10.5px; background:var(--card-soft); border:1px solid var(--border); border-radius:8px; padding:3px 8px; color:var(--muted); }
+  .apip-avail{ display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; border-radius:20px; padding:5px 10px; margin-bottom:8px; }
+  .apip-avail.yes{ background:rgba(46,204,113,.15); color:#2ecc71; }
+  .apip-avail.no{ background:rgba(231,76,60,.15); color:#e74c3c; }
+  .apip-id-badge{ flex:0 0 auto; background:linear-gradient(135deg, var(--accent), #8b1220); color:#fff; font-family:'Orbitron',monospace; font-size:10px; font-weight:800; border:none; border-radius:10px; padding:10px 12px; cursor:pointer; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .apip-id-badge:active{ transform:scale(0.95); }
+  .apip-empty{ text-align:center; padding:40px 0; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="drawer" class="drawer">
+  <div class="drawer-user">
+    <div class="drawer-avatar"><i class="fa-solid fa-user"></i></div>
+    <div id="drawerUserName" class="drawer-user-name">زائر</div>
+    <div id="drawerUserEmail" class="drawer-user-email">سجّل دخولك للاستفادة من المحفظة والطلبات</div>
+    <div id="drawerAuthButtons" style="display:flex; flex-direction:column;">
+      <button class="drawer-btn primary" onclick="goLogin(event)"><i class="fa-solid fa-right-to-bracket"></i> تسجيل دخول</button>
+      <button class="drawer-btn ghost" onclick="goRegister(event)"><i class="fa-solid fa-user-plus"></i> حساب جديد</button>
+    </div>
+    <div id="logoutBox" style="display:none; margin-top:8px;">
+      <button class="drawer-btn ghost" onclick="logoutUser(event)"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="guest-hide">
+    <div class="drawer-group-label">رئيسي</div>
+    <a href="/store.html" class="drawer-item"><i class="fa-solid fa-house"></i> الرئيسية</a>
+    <a href="/orders.html" class="drawer-item"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
+    <a href="/wallet.html" class="drawer-item"><i class="fa-solid fa-wallet"></i> المحفظة</a>
+  </div>
+  <div id="apiMenuItem" style="display:none;">
+    <div class="drawer-group-label">API</div>
+    <a href="/api-manage.html" class="drawer-item"><i class="fa-solid fa-key"></i> إدارة API</a>
+    <a href="/api-products.html" class="drawer-item"><i class="fa-solid fa-box"></i> منتجات API</a>
+  </div>
+  <div class="drawer-group-label">التوثيق</div>
+  <a href="/api-docs.html" class="drawer-item"><i class="fa-solid fa-book"></i> توثيق API</a>
+  <div id="ownerAdminMenuItem" style="display:none;">
+    <div class="drawer-group-label">الإدارة</div>
+    <a href="/admin.html" class="drawer-item"><i class="fa-solid fa-user-shield"></i> لوحة الأدمن</a>
+  </div>
+
+  <div class="toggle-row"><button onclick="toggleTheme()"><i class="fa-solid fa-moon"></i> الوضع الليلي</button></div>
+  <div class="drawer-footer"><img src="assets/dev-logo.png" alt="" class="dev-logo" onerror="this.style.display='none'"><div style="margin-top:6px;">برمجة وتصميم</div><a href="https://t.me/aboudy2312" target="_blank"><i class="fa-brands fa-telegram"></i> @aboudy2312</a><div style="margin-top:4px;">2026</div></div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleDrawer(false)"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="left-group">
+      <div class="menu-btn" onclick="toggleDrawer(true)"><span></span><span></span><span></span></div>
+      <div class="logo"><div class="logo-word">ARAB <b>STORE</b></div></div>
+    </div>
+    <div class="user-box">
+      <div class="balance-pill"><i class="fa-solid fa-coins"></i><span id="balancePillValue">$0.00</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-head">
+    <h1><i class="fa-solid fa-box" style="color:var(--accent)"></i> منتجات API</h1>
+    <p>قائمة المنتجات المتاحة عبر API — اضغط على الـ ID لنسخه</p>
+  </div>
+
+  <div class="panel" style="margin-bottom:14px; border-color:rgba(230,57,70,.35); background:rgba(230,57,70,.06);">
+    <div style="display:flex; gap:10px; align-items:flex-start;">
+      <i class="fa-solid fa-triangle-exclamation" style="color:var(--accent); font-size:16px; margin-top:2px;"></i>
+      <div>
+        <div style="font-weight:800; font-size:13px; margin-bottom:4px;">الأسعار تختلف حسب كل مستخدم</div>
+        <div style="font-size:11.5px; color:var(--muted); line-height:1.8;">يتم عرض السعر النهائي بناءً على مستوى العضوية والهامش الربحي الخاص بك.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="apip-search-row">
+    <button class="apip-refresh" id="refreshBtn" onclick="refreshProducts()"><i class="fa-solid fa-arrows-rotate"></i></button>
+    <div class="apip-search-wrap">
+      <input type="text" id="searchInput" placeholder="ابحث عن منتج أو ID..." oninput="onSearch()">
+      <i class="fa-solid fa-magnifying-glass"></i>
+    </div>
+  </div>
+
+  <div id="productsList"></div>
+  <div class="apip-empty" id="emptyState" style="display:none;">
+    <i class="fa-solid fa-box-open" style="font-size:32px; margin-bottom:10px; display:block;"></i>
+    لا توجد نتائج مطابقة
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-items">
+    <a href="/api-manage.html" class="nav-item"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></a>
+    <a href="/api-docs.html" class="nav-item"><i class="fa-solid fa-book"></i><span>التوثيق</span></a>
+    <a href="/store.html" class="nav-item"><i class="fa-solid fa-house"></i><span>الرئيسية</span></a>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  let allProducts = [];
+  let searchTimer = null;
+
+  function copyId(publicId){
+    navigator.clipboard.writeText(publicId).then(()=> toast("تم نسخ الـ ID ✅"));
+  }
+
+  function renderProducts(list){
+    const box = document.getElementById("productsList");
+    const empty = document.getElementById("emptyState");
+    if(!list.length){
+      box.innerHTML = "";
+      empty.style.display = "";
+      return;
+    }
+    empty.style.display = "none";
+    box.innerHTML = list.map(p => `
+      <div class="apip-card">
+        <div class="apip-info">
+          <div class="apip-name">${p.name}</div>
+          <div class="apip-cat">${p.category_name}</div>
+          <div class="apip-avail ${p.available ? 'yes' : 'no'}">
+            <i class="fa-solid ${p.available ? 'fa-circle-check' : 'fa-circle-xmark'}"></i>
+            ${p.available ? 'متوفر' : 'غير متوفر'}
+          </div>
+          <div class="apip-tags">
+            <span class="apip-tag"><i class="fa-solid fa-layer-group"></i> ${p.product_type || 'default'}</span>
+            <span class="apip-tag"><i class="fa-solid fa-dollar-sign"></i> ${p.price}</span>
+          </div>
+        </div>
+        <button class="apip-id-badge" onclick="copyId('${p.id}')" title="اضغط للنسخ">${p.id}</button>
+      </div>
+    `).join("");
+  }
+
+  function onSearch(){
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(()=>{
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      if(!q){ renderProducts(allProducts); return; }
+      const filtered = allProducts.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.category_name.toLowerCase().includes(q) ||
+        String(p.id).toLowerCase().includes(q)
+      );
+      renderProducts(filtered);
+    }, 200);
+  }
+
+  async function refreshProducts(){
+    const btn = document.getElementById("refreshBtn");
+    btn.classList.add("spin");
+    try{
+      allProducts = await apiFetch("/products/catalog");
+      onSearch();
+    }catch(err){
+      toast(err.message, "error");
+    }finally{
+      btn.classList.remove("spin");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    if(!Store.token()){
+      toast("سجّل دخولك أولاً", "error");
+      setTimeout(()=> location.href="/login.html", 700);
+      return;
+    }
+    refreshProducts();
+  });
+</script>
+</body>
+</html>

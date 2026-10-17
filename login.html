@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>تسجيل الدخول | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+<style>body{ padding-bottom:0; }</style>
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-top">
+    <div class="auth-logo"><div class="logo-word" style="font-size:22px;">ARAB <b>STORE</b></div></div>
+    <div class="auth-title">أهلاً فيك من جديد 👋</div>
+    <div class="auth-sub">سجّل دخولك لمتابعة طلباتك ومحفظتك</div>
+  </div>
+
+  <div class="auth-card">
+    <form id="loginForm" onsubmit="return handleLogin(event)">
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <div class="input-wrap">
+          <input type="email" id="loginEmail" placeholder="example@email.com" required>
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+      </div>
+
+      <div class="field mt-10">
+        <label>كلمة المرور</label>
+        <div class="input-wrap">
+          <input type="password" id="loginPassword" placeholder="••••••••" required>
+          <i class="fa-solid fa-lock"></i>
+          <button type="button" class="toggle-eye" onclick="togglePw('loginPassword', this)"><i class="fa-solid fa-eye"></i></button>
+        </div>
+        <div class="field-error" id="loginError"></div>
+      </div>
+
+      <div style="text-align:left; margin-top:6px;">
+        <a href="/forgot-password.html" style="font-size:11px; color:var(--accent); font-weight:700;">نسيت كلمة المرور؟</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary mt-10" id="loginBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
+      </button>
+    </form>
+
+    <div class="auth-switch">ليس لديك حساب؟ <a href="/register.html">سجّل الآن</a></div>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  function togglePw(id, btn){
+    const input = document.getElementById(id);
+    const icon = btn.querySelector("i");
+    if(input.type === "password"){ input.type = "text"; icon.className = "fa-solid fa-eye-slash"; }
+    else{ input.type = "password"; icon.className = "fa-solid fa-eye"; }
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const remembered = localStorage.getItem("rememberedEmail");
+    if(remembered) document.getElementById("loginEmail").value = remembered;
+  });
+
+  async function handleLogin(e){
+    e.preventDefault();
+    const btn = document.getElementById("loginBtn");
+    const errEl = document.getElementById("loginError");
+    errEl.style.display = "none";
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الدخول...';
+
+    try{
+      const data = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+      Store.setToken(data.token);
+      Store.setUser(Object.assign(data.user, { balance: data.user.balance_usd }));
+      localStorage.setItem("rememberedEmail", email); // تذكر البريد للمرة الجاية
+      toast("تم تسجيل الدخول بنجاح");
+      setTimeout(()=> location.href = "/store.html", 500);
+    }catch(err){
+      errEl.textContent = err.message || "فشل تسجيل الدخول، حاول مرة أخرى";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول';
+    }
+    return false;
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>إدارة API | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+</head>
+<body>
+
+<div id="drawer" class="drawer">
+  <div class="drawer-user">
+    <div class="drawer-avatar"><i class="fa-solid fa-user"></i></div>
+    <div id="drawerUserName" class="drawer-user-name">زائر</div>
+    <div id="drawerUserEmail" class="drawer-user-email">سجّل دخولك للاستفادة من المحفظة والطلبات</div>
+    <div id="drawerAuthButtons" style="display:flex; flex-direction:column;">
+      <button class="drawer-btn primary" onclick="goLogin(event)"><i class="fa-solid fa-right-to-bracket"></i> تسجيل دخول</button>
+      <button class="drawer-btn ghost" onclick="goRegister(event)"><i class="fa-solid fa-user-plus"></i> حساب جديد</button>
+    </div>
+    <div id="logoutBox" style="display:none; margin-top:8px;">
+      <button class="drawer-btn ghost" onclick="logoutUser(event)"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="guest-hide">
+    <div class="drawer-group-label">رئيسي</div>
+    <a href="/store.html" class="drawer-item"><i class="fa-solid fa-house"></i> الرئيسية</a>
+    <a href="/orders.html" class="drawer-item"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
+    <a href="/wallet.html" class="drawer-item"><i class="fa-solid fa-wallet"></i> المحفظة</a>
+  </div>
+  <div id="apiMenuItem" style="display:none;">
+    <div class="drawer-group-label">API</div>
+    <a href="/api-manage.html" class="drawer-item"><i class="fa-solid fa-key"></i> إدارة API</a>
+    <a href="/api-products.html" class="drawer-item"><i class="fa-solid fa-box"></i> منتجات API</a>
+  </div>
+  <div id="ownerAdminMenuItem" style="display:none;">
+    <div class="drawer-group-label">الإدارة</div>
+    <a href="/admin.html" class="drawer-item"><i class="fa-solid fa-user-shield"></i> لوحة الأدمن</a>
+  </div>
+
+  <div class="toggle-row"><button onclick="toggleTheme()"><i class="fa-solid fa-moon"></i> الوضع الليلي</button></div>
+  <div class="drawer-footer"><img src="assets/dev-logo.png" alt="" class="dev-logo" onerror="this.style.display='none'"><div style="margin-top:6px;">برمجة وتصميم</div><a href="https://t.me/aboudy2312" target="_blank"><i class="fa-brands fa-telegram"></i> @aboudy2312</a><div style="margin-top:4px;">2026</div></div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleDrawer(false)"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="left-group">
+      <div class="menu-btn" onclick="toggleDrawer(true)"><span></span><span></span><span></span></div>
+      <div class="logo"><div class="logo-word">ARAB <b>STORE</b></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-head">
+    <h1><i class="fa-solid fa-key" style="color:var(--accent)"></i> إدارة API</h1>
+    <p>استخدم مفتاحك الخاص لإرسال طلبات شحن مباشرة من نظامك</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>مفتاح API الخاص بك</h3><span class="status-badge completed" id="apiStatusBadge">مفعّل</span></div>
+    <div class="copy-box"><span id="apiKeyText">جاري التحميل...</span><button onclick="copyKey()"><i class="fa-solid fa-copy"></i></button></div>
+    <div class="field-hint"><i class="fa-solid fa-triangle-exclamation"></i> لا تشارك هذا المفتاح مع أي شخص — أي طلب فيه يخصم من رصيدك مباشرة</div>
+    <div class="field-hint"><i class="fa-solid fa-circle-info"></i> لتوليد مفتاح جديد أو تعطيل API، تواصل مع الإدارة عبر تيليجرام: <a href="https://t.me/aboudy2312" target="_blank">@aboudy2312</a></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>عناوين IP المسموحة</h3></div>
+    <div class="field-hint" style="margin-bottom:8px;">حدد عناوين IP يُسمح لها فقط بإرسال الطلبات (افصل بينها بفاصلة). اتركه فارغاً للسماح من أي مكان.</div>
+    <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:13px; font-weight:700; cursor:pointer;">
+      <input type="checkbox" id="allowAllIpsCheckbox" onchange="onAllowAllIpsChange()"> السماح لجميع عناوين IP (تُقبل الطلبات من أي مكان)
+    </label>
+    <div class="field" id="apiIpsField">
+      <div class="input-wrap">
+        <input type="text" id="apiIpsInput" placeholder="مثال: 127.0.0.1, 192.168.1.10">
+        <i class="fa-solid fa-globe"></i>
+      </div>
+    </div>
+    <button class="btn btn-primary mt-10" onclick="saveIps()"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>ما يحتاجه المبرمج</h3></div>
+    <div class="field-hint" style="margin-bottom:10px;">وثائق واجهة البرمجة للتطبيق (API Documentation)</div>
+    <div class="field-hint" style="margin-bottom:8px;">يُرجى نسخ الرابط الآتي وتسليمه للمبرمج:</div>
+    <div class="copy-box"><span id="apiDocsLink">جاري التحميل...</span><button onclick="copyText('apiDocsLink')"><i class="fa-solid fa-copy"></i></button></div>
+    <div class="field-hint" style="margin:12px 0 8px;">بالإضافة إلى رابط نقطة الاتصال الرئيسية لواجهة البرمجة للتطبيق:</div>
+    <div class="copy-box"><span id="apiBaseLink">جاري التحميل...</span><button onclick="copyText('apiBaseLink')"><i class="fa-solid fa-copy"></i></button></div>
+    <div class="field-hint" style="margin-top:12px;"><i class="fa-solid fa-triangle-exclamation"></i> يُرجى عدم نسيان مشاركة (API TOKEN) الظاهر في الكارت على اليمين مع المبرمج، عند الحاجة.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>مثال استدعاء سريع</h3></div>
+    <div class="copy-box" style="white-space:pre-wrap; line-height:1.7;" id="apiExampleText">جاري التحميل...</div>
+    <a href="/api-docs.html" class="btn btn-outline mt-10"><i class="fa-solid fa-book"></i> توثيق API الكامل</a>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-items">
+    <a href="/store.html" class="nav-item" id="navHome"><i class="fa-solid fa-house"></i><span>الرئيسية</span></a>
+    <a href="/wallet.html" class="nav-item" id="navWallet"><i class="fa-solid fa-wallet"></i><span>المحفظة</span></a>
+    <a href="/deposit.html" class="nav-item" id="navDeposit"><i class="fa-solid fa-credit-card"></i><span data-ar="إيداع" data-en="Deposit">إيداع</span></a>
+    <a href="/orders.html" class="nav-item" id="navOrders"><i class="fa-solid fa-bag-shopping"></i><span>طلباتي</span></a>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  let currentApiKey = "";
+
+  function buildExample(apiKey){
+    return `curl -X POST ${location.origin}/api/v1/order \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -d "product_id=12&player_id=123456&qty=1"`;
+  }
+
+  function copyKey(){
+    navigator.clipboard?.writeText(currentApiKey);
+    toast("تم نسخ المفتاح");
+  }
+
+  function copyText(elId){
+    const text = document.getElementById(elId).textContent;
+    navigator.clipboard?.writeText(text);
+    toast("تم نسخ الرابط");
+  }
+
+  function fillDocLinks(){
+    document.getElementById("apiDocsLink").textContent = location.origin + "/api-docs.html";
+    document.getElementById("apiBaseLink").textContent = location.origin + "/api/v1/";
+  }
+
+  function onAllowAllIpsChange(){
+    const allowAll = document.getElementById("allowAllIpsCheckbox").checked;
+    const field = document.getElementById("apiIpsField");
+    const input = document.getElementById("apiIpsInput");
+    if(allowAll){
+      input.value = "";
+      field.style.display = "none";
+    } else {
+      field.style.display = "";
+    }
+  }
+
+  async function loadApiInfo(){
+    try{
+      const data = await apiFetch("/user/api");
+      currentApiKey = data.api_key || "";
+      document.getElementById("apiKeyText").textContent = currentApiKey || "لا يوجد مفتاح بعد";
+      const ips = data.allowed_ips || "";
+      document.getElementById("apiIpsInput").value = ips;
+      document.getElementById("allowAllIpsCheckbox").checked = !ips;
+      onAllowAllIpsChange();
+      document.getElementById("apiExampleText").textContent = buildExample(currentApiKey || "ALSH-XXXXXXXX");
+    }catch(err){
+      if(err.status === 403){
+        document.querySelector(".container").innerHTML = `
+          <div class="empty-state" style="margin-top:40px;">
+            <i class="fa-solid fa-lock"></i>
+            <div class="t">API غير مفعّل لحسابك</div>
+            <div class="s">تواصل مع الإدارة لتفعيل API على حسابك</div>
+            <a href="https://t.me/aboudy2312" target="_blank" class="btn btn-primary mt-10"><i class="fa-brands fa-telegram"></i> تواصل عبر تيليجرام</a>
+          </div>`;
+        return;
+      }
+      toast(err.message, "error");
+    }
+  }
+
+  async function saveIps(){
+    const allowed_ips = document.getElementById("apiIpsInput").value.trim();
+    try{
+      await apiFetch("/user/api/ips", { method:"POST", body: JSON.stringify({ allowed_ips }) });
+      toast("تم حفظ عناوين IP بنجاح ✅");
+    }catch(err){ toast(err.message, "error"); }
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    if(!Store.token()){
+      toast("سجّل دخولك أولاً", "error");
+      setTimeout(()=> location.href="/login.html", 700);
+      return;
+    }
+    loadApiInfo();
+    fillDocLinks();
+  });
+</script>
+</body>
+</html>

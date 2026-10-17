@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>سجل العمليات | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+</head>
+<body>
+
+<div id="drawer" class="drawer">
+  <div class="drawer-user">
+    <div class="drawer-avatar"><i class="fa-solid fa-user"></i></div>
+    <div id="drawerUserName" class="drawer-user-name">زائر</div>
+    <div id="drawerUserEmail" class="drawer-user-email">سجّل دخولك للاستفادة من المحفظة والطلبات</div>
+    <div id="drawerAuthButtons" style="display:flex; flex-direction:column;">
+      <button class="drawer-btn primary" onclick="goLogin(event)"><i class="fa-solid fa-right-to-bracket"></i> تسجيل دخول</button>
+      <button class="drawer-btn ghost" onclick="goRegister(event)"><i class="fa-solid fa-user-plus"></i> حساب جديد</button>
+    </div>
+    <div id="logoutBox" style="display:none; margin-top:8px;">
+      <button class="drawer-btn ghost" onclick="logoutUser(event)"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="guest-hide">
+    <div class="exchange-box"><i class="fa-solid fa-right-left"></i><span class="text-muted" style="font-size:10.5px;">سعر الصرف</span><span>1$ = <span class="val">13,800</span> ل.س</span></div>
+    <div class="drawer-group-label">رئيسي</div>
+    <a href="/store.html" class="drawer-item"><i class="fa-solid fa-house"></i> الرئيسية</a>
+    <a href="/orders.html" class="drawer-item"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
+    <a href="/wallet.html" class="drawer-item"><i class="fa-solid fa-wallet"></i> المحفظة</a>
+    <a href="/activity.html" class="drawer-item"><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات</a>
+    <a href="/deposit.html" class="drawer-item"><i class="fa-solid fa-credit-card"></i> إيداع رصيد</a>
+    <div class="drawer-group-label">معلومات</div>
+    <a href="https://t.me/aboudy2312" target="_blank" class="drawer-item"><i class="fa-brands fa-telegram"></i> الدعم (تيليجرام)</a>
+  </div>
+  <div id="apiMenuItem" style="display:none;">
+    <div class="drawer-group-label">API</div>
+    <a href="/api-manage.html" class="drawer-item"><i class="fa-solid fa-key"></i> إدارة API</a>
+  </div>
+  <div id="ownerAdminMenuItem" style="display:none;">
+    <div class="drawer-group-label">الإدارة</div>
+    <a href="/admin.html" class="drawer-item"><i class="fa-solid fa-user-shield"></i> لوحة الأدمن</a>
+  </div>
+
+  <div class="toggle-row"><button onclick="toggleTheme()"><i class="fa-solid fa-moon"></i> الوضع الليلي</button></div>
+  <div class="drawer-footer"><img src="assets/dev-logo.png" alt="" class="dev-logo"><div style="margin-top:6px;">برمجة وتصميم</div><a href="https://t.me/aboudy2312" target="_blank"><i class="fa-brands fa-telegram"></i> @aboudy2312</a><div style="margin-top:4px;">2026</div></div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleDrawer(false)"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="left-group">
+      <div class="menu-btn" onclick="toggleDrawer(true)"><span></span><span></span><span></span></div>
+      <div class="logo"><div class="logo-word">ARAB <b>STORE</b></div></div>
+    </div>
+    <div class="user-box">
+      <div class="icon-btn" id="notifBellBtn"><i class="fa-solid fa-bell"></i><span class="badge-dot" id="notifBadge" style="display:none;">0</span></div>
+      <div class="balance-pill"><i class="fa-solid fa-coins"></i><span id="balancePillValue">$0.00</span><button class="add-btn" onclick="location.href='/deposit.html'">+</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <a href="/account.html" class="back-pill" style="text-decoration:none;"><i class="fa-solid fa-arrow-right"></i> العودة للحساب</a>
+  <div class="page-head">
+    <h1><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> سجل العمليات</h1>
+    <p>كل الطلبات وتغييرات الرصيد وإشعارات النظام مع الوقت والحالة</p>
+  </div>
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+    <button class="btn-sm primary" onclick="filterActivity('all', this)">الكل</button>
+    <button class="btn-sm" onclick="filterActivity('order', this)">الطلبات</button>
+    <button class="btn-sm" onclick="filterActivity('balance', this)">الرصيد</button>
+    <button class="btn-sm" onclick="filterActivity('deposit', this)">الإيداعات</button>
+    <button class="btn-sm" onclick="filterActivity('notification', this)">الإشعارات</button>
+  </div>
+  <div id="activityList"></div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-items">
+    <a href="/store.html" class="nav-item"><i class="fa-solid fa-house"></i><span>الرئيسية</span></a>
+    <a href="/wallet.html" class="nav-item"><i class="fa-solid fa-wallet"></i><span>المحفظة</span></a>
+    <a href="/activity.html" class="nav-item active"><i class="fa-solid fa-clock-rotate-left"></i><span>السجل</span></a>
+    <a href="/orders.html" class="nav-item"><i class="fa-solid fa-bag-shopping"></i><span>طلباتي</span></a>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  let ACTIVITY = [];
+  const KIND_ICON = { order:"fa-bag-shopping", balance:"fa-coins", deposit:"fa-credit-card", notification:"fa-bell" };
+  const STATUS_AR = { pending:"قيد المراجعة", processing:"قيد التنفيذ", completed:"مكتمل", accepted:"مقبول", rejected:"مرفوض", failed:"فشل", done:"تم", info:"معلومة", success:"نجاح", error:"خطأ", danger:"تنبيه" };
+
+  function renderActivity(kind){
+    const box = document.getElementById("activityList");
+    const items = ACTIVITY.filter(i => kind === "all" || i.kind === kind);
+    if(!items.length){ box.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><div class="t">لا توجد عمليات بعد</div></div>`; return; }
+    box.innerHTML = items.map(i => `
+      <div class="deposit-row">
+        <span class="status-chip">${STATUS_AR[i.status] || i.status || ""}</span>
+        <div class="right">
+          <div class="amt"><i class="fa-solid ${KIND_ICON[i.kind] || "fa-circle-info"}" style="color:var(--accent); margin-left:5px;"></i>${i.title || ""}</div>
+          <div class="dt">${i.detail || ""}</div>
+          <div class="dt">${i.source || ""} • ${i.date || ""}${i.amount_syp != null ? " • " + Math.round(i.amount_syp).toLocaleString() + " ل.س" : ""}${i.ref ? " • " + i.ref : ""}</div>
+        </div>
+      </div>`).join("");
+  }
+  function filterActivity(kind, btn){
+    document.querySelectorAll(".container .btn-sm").forEach(b=>b.classList.remove("primary"));
+    if(btn) btn.classList.add("primary");
+    renderActivity(kind);
+  }
+  document.addEventListener("DOMContentLoaded", async ()=>{
+    if(!Store.token()){ toast("سجّل دخولك لعرض السجل", "error"); setTimeout(()=> location.href="/login.html", 700); return; }
+    try{ ACTIVITY = await apiFetch("/user/activity"); }catch(err){ ACTIVITY = []; }
+    renderActivity("all");
+  });
+</script>
+</body>
+</html>

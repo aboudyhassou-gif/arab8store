@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ARAB STORE | شحن ألعاب وخدمات رقمية</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+</head>
+<body>
+
+<!-- ===== شاشة فتح الموقع — هوية ARAB STORE المتحركة ===== -->
+<div id="splashScreen" class="splash-screen">
+  <div class="splash-brand-loader" role="status" aria-label="ARAB STORE">
+    <div class="splash-word splash-word-arab">ARAB</div>
+    <div class="splash-ball" aria-hidden="true">
+      <img class="splash-logo-mark" src="assets/arab-store-mark.png" alt="">
+      <span class="splash-ball-shine"></span>
+      <span class="splash-ball-core"></span>
+    </div>
+    <div class="splash-orbit splash-orbit-one" aria-hidden="true"></div>
+    <div class="splash-orbit splash-orbit-two" aria-hidden="true"></div>
+    <div class="splash-word splash-word-store">STORE</div>
+    <div class="splash-loader-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="splash-loading-label">جاري التحميل، يرجى الانتظار...</div>
+  </div>
+</div>
+
+<section id="storeErrorState" class="store-error-state" hidden role="alert" aria-live="polite">
+  <img src="assets/store-error.svg" alt="">
+  <h2>تعذر تحميل المتجر</h2>
+  <p id="storeErrorMessage">يبدو أن الاتصال بالإنترنت أو بالخادم انقطع مؤقتاً.</p>
+  <button type="button" onclick="retryStoreLoad(this)"><i class="fa-solid fa-rotate-right"></i> إعادة المحاولة</button>
+</section>
+
+<!-- ===== القائمة الجانبية ===== -->
+<div id="drawer" class="drawer">
+  <div class="drawer-user">
+    <div class="drawer-avatar"><i class="fa-solid fa-user"></i></div>
+    <div id="drawerUserName" class="drawer-user-name" data-ar="زائر" data-en="Guest">زائر</div>
+    <div id="drawerUserEmail" class="drawer-user-email" data-ar="سجّل دخولك للاستفادة من المحفظة والطلبات" data-en="Log in to use your wallet and orders">سجّل دخولك للاستفادة من المحفظة والطلبات</div>
+    <div id="drawerAuthButtons" style="display:flex; flex-direction:column;">
+      <button class="drawer-btn primary" onclick="goLogin(event)"><i class="fa-solid fa-right-to-bracket"></i> <span data-ar="تسجيل دخول" data-en="Log in">تسجيل دخول</span></button>
+      <button class="drawer-btn ghost" onclick="goRegister(event)"><i class="fa-solid fa-user-plus"></i> <span data-ar="حساب جديد" data-en="New account">حساب جديد</span></button>
+    </div>
+    <div id="logoutBox" style="display:none; margin-top:8px;">
+      <button class="drawer-btn ghost" onclick="logoutUser(event)"><i class="fa-solid fa-right-from-bracket"></i> <span data-ar="تسجيل خروج" data-en="Log out">تسجيل خروج</span></button>
+    </div>
+  </div>
+
+  <div class="exchange-box guest-hide">
+    <i class="fa-solid fa-right-left"></i>
+    <span class="text-muted" style="font-size:10.5px;" data-ar="سعر الصرف" data-en="Exchange rate">سعر الصرف</span>
+    <span>1$ = <span class="val" id="drawerRate">13,800</span> ل.س</span>
+  </div>
+
+  <div class="currency-switch guest-hide" onclick="toggleCurrencyDisplay()">
+    <div class="lbl"><i class="fa-solid fa-coins"></i> <span data-ar="عملة العرض" data-en="Display currency">عملة العرض</span></div>
+    <div class="flex items-center gap-8">
+      <span id="currencyLabel" style="font-family:'Orbitron',monospace; font-size:11px;">USD</span>
+      <div class="switch-track"><div id="switchDot" class="switch-dot" style="right:3px;"></div></div>
+    </div>
+  </div>
+
+  <div class="guest-hide">
+    <div class="drawer-group-label" data-ar="رئيسي" data-en="Main">رئيسي</div>
+    <a href="/store.html" class="drawer-item"><i class="fa-solid fa-house"></i> <span data-ar="الرئيسية" data-en="Home">الرئيسية</span></a>
+    <a href="/orders.html" class="drawer-item"><i class="fa-solid fa-bag-shopping"></i> <span data-ar="طلباتي" data-en="My orders">طلباتي</span></a>
+    <a href="/wallet.html" class="drawer-item"><i class="fa-solid fa-wallet"></i> <span data-ar="المحفظة" data-en="Wallet">المحفظة</span></a>
+    <a href="/deposit.html" class="drawer-item"><i class="fa-solid fa-credit-card"></i> <span data-ar="إيداع رصيد" data-en="Add balance">إيداع رصيد</span></a>
+    <a href="/account.html" class="drawer-item"><i class="fa-solid fa-gear"></i> <span data-ar="إعدادات الحساب" data-en="Account settings">إعدادات الحساب</span></a>
+    <a href="#" onclick="showAbout(); return false;" class="drawer-item"><i class="fa-solid fa-circle-info"></i> <span data-ar="من نحن" data-en="About us">من نحن</span></a>
+    <a href="#" onclick="showTerms(); return false;" class="drawer-item"><i class="fa-solid fa-file-contract"></i> <span data-ar="الشروط والأحكام" data-en="Terms & conditions">الشروط والأحكام</span></a>
+    <a href="https://t.me/aboudy2312" target="_blank" class="drawer-item"><i class="fa-brands fa-telegram"></i> <span data-ar="الدعم (تيليجرام)" data-en="Support (Telegram)">الدعم (تيليجرام)</span></a>
+    <a href="https://wa.me/96181302718" target="_blank" class="drawer-item"><i class="fa-brands fa-whatsapp"></i> <span data-ar="الدعم (واتساب)" data-en="Support (WhatsApp)">الدعم (واتساب)</span></a>
+  </div>
+
+  <div id="apiMenuItem" style="display:none;">
+    <div class="drawer-group-label" data-ar="API" data-en="API">API</div>
+    <a href="/api-manage.html" class="drawer-item"><i class="fa-solid fa-key"></i> <span data-ar="إدارة API" data-en="Manage API">إدارة API</span></a>
+  </div>
+
+  <div id="ownerAdminMenuItem" style="display:none;">
+    <div class="drawer-group-label">الإدارة</div>
+    <a href="/admin.html" class="drawer-item"><i class="fa-solid fa-user-shield"></i> لوحة الأدمن</a>
+  </div>
+
+  <div class="toggle-row">
+    <button onclick="toggleTheme()"><i class="fa-solid fa-moon"></i> <span data-ar="الوضع الليلي" data-en="Dark mode">الوضع الليلي</span></button>
+    <button onclick="toggleLanguage()"><i class="fa-solid fa-language"></i> EN</button>
+  </div>
+
+  <div class="drawer-footer">
+    <img src="assets/dev-logo.png" alt="" class="dev-logo" onerror="this.style.display='none'">
+    <div style="margin-top:6px;">برمجة وتصميم</div>
+    <a href="https://t.me/aboudy2312" target="_blank"><i class="fa-brands fa-telegram"></i> @aboudy2312</a>
+    <div style="margin-top:4px;">2026</div>
+  </div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleDrawer(false)"></div>
+
+<div id="welcomePopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:10500; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:24px; width:100%; max-width:360px; text-align:center;">
+    <i class="fa-solid fa-champagne-glasses" style="font-size:30px; color:var(--accent); margin-bottom:12px; display:block;"></i>
+    <div id="welcomePopupText" style="font-size:13px; line-height:2; color:var(--text); white-space:pre-line; margin-bottom:18px;"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="closeWelcomePopup()">إغلاق</button>
+  </div>
+</div>
+
+<!-- ===== الفاب العائم ===== -->
+<div class="fab-stack">
+  <div class="fab-main" id="fabMainBtn"><i class="fa-solid fa-headset"></i></div>
+  <div class="fab-options" id="fabOptions">
+    <a href="https://t.me/aboudy2312" target="_blank" class="fab-option" title="الدعم"><i class="fa-brands fa-telegram"></i></a>
+    <a href="https://wa.me/96181302718" target="_blank" class="fab-option" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+  </div>
+</div>
+
+<!-- ===== الشريط العلوي ===== -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="left-group">
+      <div class="menu-btn" onclick="toggleDrawer(true)"><span></span><span></span><span></span></div>
+      <div class="logo" id="siteLogoWrap">
+        <div class="logo-word" id="siteLogoText">ARAB <b>STORE</b></div>
+      </div>
+    </div>
+    <div class="user-box">
+      <div class="icon-btn" id="notifBellBtn">
+        <i class="fa-solid fa-bell"></i>
+        <span class="badge-dot" id="notifBadge" style="display:none;">0</span>
+      </div>
+      <div class="balance-pill">
+        <i class="fa-solid fa-coins"></i>
+        <span id="balancePillValue">$0.00</span>
+        <button class="add-btn" onclick="location.href='/deposit.html'">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ===== سلايدر بانر إعلاني — صور افتراضية خفيفة ويمكن للأدمن استبدالها ===== -->
+  <div id="storeBanner" class="store-banner" style="display:none;">
+    <div id="storeBannerTrack" class="store-banner-track"></div>
+    <div id="storeBannerDots" class="store-banner-dots"></div>
+  </div>
+
+  <div class="ticker" style="margin-top:14px;">
+    <div class="ticker-track"><i class="fa-solid fa-star"></i> ⭐ شحن فوري خلال دقائق • دعم على مدار الساعة • أفضل الأسعار بالسوق السوري • ضمان كامل على كل طلب</div>
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="storeSearchInput" placeholder="ابحث عن قسم أو خدمة...">
+  </div>
+
+  <div class="section-header">
+    <div class="section-title">جميع التصنيفات</div>
+  </div>
+
+  <div id="categories" class="photo-grid">
+    <div class="loader-fullpage" id="loaderContainer" style="grid-column:1/-1;">
+      <div class="loader-ring"></div>
+      <div class="store-name">ARAB <b>STORE</b></div>
+      <div class="msg">جاري تحميل التصنيفات...</div>
+    </div>
+  </div>
+
+  <div class="store-footer-tag">ARAB <b>STORE</b> 2026</div>
+
+</div>
+
+<!-- ===== شريط التنقل السفلي ===== -->
+<div class="bottom-nav">
+  <div class="nav-items">
+    <a href="/store.html" class="nav-item active" id="navHome"><i class="fa-solid fa-house"></i><span data-ar="الرئيسية" data-en="Home">الرئيسية</span></a>
+    <a href="/wallet.html" class="nav-item" id="navWallet"><i class="fa-solid fa-wallet"></i><span data-ar="المحفظة" data-en="Wallet">المحفظة</span></a>
+    <a href="/deposit.html" class="nav-item" id="navDeposit"><i class="fa-solid fa-credit-card"></i><span data-ar="إيداع" data-en="Deposit">إيداع</span></a>
+    <a href="/orders.html" class="nav-item" id="navOrders"><i class="fa-solid fa-bag-shopping"></i><span data-ar="طلباتي" data-en="My orders">طلباتي</span></a>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  const SECTION_VISUALS = {
+    "default": { icon:"fa-shapes", art:"art-red" },
+  };
+  const ICON_POOL = ["fa-gamepad","fa-coins","fa-credit-card","fa-hashtag","fa-mobile-screen","fa-tv","fa-gift","fa-puzzle-piece","fa-bolt"];
+  const ART_POOL = ["art-red","art-gold","art-purple","art-green","art-blue","art-pink"];
+
+  function visualFor(index){
+    return { icon: ICON_POOL[index % ICON_POOL.length], art: ART_POOL[index % ART_POOL.length] };
+  }
+
+  let bannerInterval = null;
+  let retryInProgress = false;
+  function showStoreError(message){
+    const panel = document.getElementById("storeErrorState");
+    const text = document.getElementById("storeErrorMessage");
+    if(text) text.textContent = navigator.onLine === false
+      ? "تحقق من اتصال الإنترنت ثم اضغط إعادة المحاولة."
+      : (message || "حدث خطأ مؤقت أثناء تحميل المتجر.");
+    if(panel) panel.hidden = false;
+  }
+  function hideStoreError(){
+    const panel = document.getElementById("storeErrorState");
+    if(panel) panel.hidden = true;
+  }
+  async function retryStoreLoad(button){
+    if(retryInProgress) return;
+    retryInProgress = true;
+    if(button){ button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارِ المحاولة...'; }
+    hideStoreError();
+    const results = await Promise.allSettled([loadSettings(), loadCategories()]);
+    if(results.some(result => result.status === "rejected")) showStoreError();
+    else hideStoreError();
+    loadWalletPill();
+    retryInProgress = false;
+    if(button){ button.disabled = false; button.innerHTML = '<i class="fa-solid fa-rotate-right"></i> إعادة المحاولة'; }
+  }
+  window.addEventListener("offline", ()=> showStoreError("انقطع اتصال الإنترنت. تحقق من الشبكة ثم أعد المحاولة."));
+  window.addEventListener("online", ()=> retryStoreLoad());
+  function closeWelcomePopup(){
+    document.getElementById("welcomePopup").style.display = "none";
+  }
+  async function loadSettings(){
+    try{
+      const s = await apiFetch("/store/settings");
+      document.getElementById("drawerRate").textContent = Math.round(s.exchange_rate).toLocaleString();
+      Currency.setRate(s.exchange_rate);
+      if(s.logo_image){
+        const img = document.createElement("img");
+        img.src = s.logo_image;
+        img.onerror = ()=> img.remove();
+        img.style.cssText = "height:28px; width:28px; object-fit:contain; display:block; border-radius:8px; margin-left:6px;";
+        document.getElementById("siteLogoWrap").insertBefore(img, document.getElementById("siteLogoText"));
+      }
+      const images = (s.banner_images && s.banner_images.length) ? s.banner_images : [
+        "assets/banner-welcome.svg",
+        "assets/banner-games.svg",
+        "assets/banner-digital.svg"
+      ];
+      if(s.welcome_popup_enabled && s.welcome_popup_text){
+        document.getElementById("welcomePopupText").textContent = s.welcome_popup_text;
+        // تظهر مع كل دخول جديد (مرة واحدة لكل جلسة) وليس مع كل تنقل داخلي
+        let already = false;
+        try{ already = !!sessionStorage.getItem("as_welcomed"); sessionStorage.setItem("as_welcomed", "1"); }
+        catch(e){ already = false; }
+        if(!already) setTimeout(()=>{ document.getElementById("welcomePopup").style.display = "flex"; }, 600);
+      }
+      if(images.length){
+        const track = document.getElementById("storeBannerTrack");
+        const dots = document.getElementById("storeBannerDots");
+        const bannerEl = document.getElementById("storeBanner");
+        track.innerHTML = images.map((src,i) => `<div class="store-banner-slide"><img src="${src}" alt="بانر" ${i ? 'loading="lazy" decoding="async"' : 'fetchpriority="high" decoding="async"'}><img class="store-banner-slide-brand" src="assets/arab-store-logo.png" alt="ARAB STORE" loading="lazy" decoding="async"></div>`).join("");
+        // نجعل ارتفاع البانر يتكيّف تلقائياً مع أبعاد الصورة الحقيقية المرفوعة
+        // (بدل نسبة عرض/ارتفاع ثابتة تقص الصورة) — نعتمد أبعاد أول صورة كمرجع للسلايدر كله
+        const firstImg = track.querySelector("img");
+        const applyRatio = ()=>{
+          if(firstImg.naturalWidth && firstImg.naturalHeight){
+            bannerEl.style.aspectRatio = `${firstImg.naturalWidth} / ${firstImg.naturalHeight}`;
+          }
+        };
+        if(firstImg.complete) applyRatio();
+        else firstImg.addEventListener("load", applyRatio, { once:true });
+        dots.innerHTML = images.length > 1
+          ? images.map((_,i)=> `<span class="dot${i===0?' active':''}" data-i="${i}"></span>`).join("")
+          : "";
+        document.getElementById("storeBanner").style.display = "block";
+        let current = 0;
+        const showSlide = (i)=>{
+          current = i;
+          track.style.transform = `translateX(${i * 100}%)`;
+          dots.querySelectorAll(".dot").forEach((d,di)=> d.classList.toggle("active", di===i));
+        };
+        if(images.length > 1){
+          if(bannerInterval) clearInterval(bannerInterval);
+          bannerInterval = setInterval(()=> showSlide((current + 1) % images.length), 4000);
+        }
+      }
+    }catch(err){ showStoreError("تعذر تحميل إعدادات المتجر حالياً."); throw err; }
+  }
+
+  async function loadCategories(){
+    const box = document.getElementById("categories");
+    try{
+      const sections = await apiFetch("/store/sections");
+      if(!sections.length){
+        box.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-box-open"></i><div class="t">ما في تصنيفات بعد</div><div class="s">رح تضيفها من لوحة التحكم</div></div>`;
+        return;
+      }
+      box.innerHTML = sections.map((s,i)=>{
+        const v = visualFor(i);
+        const art = s.image
+          ? `<img src="${s.image}" alt="${s.name}" loading="lazy" decoding="async">`
+          : `<i class="fa-solid ${v.icon}"></i>`;
+        return `
+        <a class="photo-tile" href="/products.html?section=${encodeURIComponent(s.name)}&section_id=${s.id}">
+          <div class="photo-tile-art ${s.image ? '' : v.art}${tileCls(s)}">            ${art}${tileBadges(s)}
+          </div>
+          <div class="photo-tile-banner" dir="auto">${s.emoji||''} ${s.name}</div>
+        </a>`;
+      }).join("");
+    }catch(err){
+      box.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-plug-circle-xmark"></i><div class="t">تعذّر الاتصال بالسيرفر</div><div class="s">تأكد إنه app.py شغّال</div></div>`;
+      showStoreError("تعذر تحميل أقسام المتجر حالياً.");
+      throw err;
+    }
+  }
+
+  async function loadWalletPill(){
+    if(!Store.token()) return;
+    try{
+      const data = await apiFetch("/wallet");
+      Store.setUser(Object.assign(Store.user()||{}, data.user));
+      document.getElementById("balancePillValue").textContent = Currency.format(data.user.balance_usd);
+    }catch(err){ /* تجاهل بهدوء */ }
+  }
+
+  function showAbout(){
+    if(Lang.get() === "en"){
+      alert("⚡ ARAB STORE ⚡\n\nA store for game top-ups and digital services. Instant delivery, competitive prices, and ongoing support via Telegram.");
+    } else {
+      alert("⚡ ARAB STORE ⚡\n\nمتجر شحن ألعاب وخدمات رقمية. شحن فوري، أسعار منافسة، ودعم متواصل عبر تيليجرام.");
+    }
+  }
+  function showTerms(){
+    if(Lang.get() === "en"){
+      alert("📜 Terms & Conditions\n\n1. All products are digital and delivered instantly after payment.\n2. Make sure your data (player ID) is correct before completing the order.\n3. No refunds after delivery unless there is a confirmed technical issue.\n4. Prices are subject to change based on the exchange rate.\n\nFor inquiries: @aboudy2312");
+    } else {
+      alert("📜 الشروط والأحكام\n\n1. جميع المنتجات رقمية وتُسلَّم فوراً بعد الدفع.\n2. تأكد من بياناتك (آيدي اللاعب) قبل إتمام الطلب.\n3. لا استرداد بعد التسليم إلا بوجود خلل تقني مؤكد.\n4. الأسعار قابلة للتغيير حسب سعر الصرف.\n\nللاستفسار: @aboudy2312");
+    }
+  }
+
+  function syncCurrencyUI(){
+    const c = Currency.get();
+    document.getElementById("currencyLabel").textContent = c;
+    document.getElementById("switchDot").style.right = c === "SYP" ? "23px" : "3px";
+  }
+  async function toggleCurrencyDisplay(){
+    const next = Currency.get() === "USD" ? "SYP" : "USD";
+    try{ await Currency.save(next); }catch(err){ toast(err.message, "error"); return; }
+    syncCurrencyUI();
+    loadCategories();
+    renderAuthState();
+  }
+
+  function setupStoreSearch(){
+    const input = document.getElementById("storeSearchInput");
+    if(!input) return;
+    input.addEventListener("input", ()=>{
+      const q = input.value.trim().toLowerCase();
+      document.querySelectorAll("#categories .photo-tile").forEach(tile=>{
+        const name = (tile.querySelector(".photo-tile-banner")?.textContent || "").toLowerCase();
+        tile.style.display = !q || name.includes(q) ? "" : "none";
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    applyTranslations();
+    syncCurrencyUI();
+    setupStoreSearch();
+    let splashClosed = false;
+    const closeSplash = ()=>{
+      if(splashClosed) return;
+      splashClosed = true;
+      const splash = document.getElementById("splashScreen");
+      if(splash) splash.classList.add("hide");
+    };
+    // لا ننتظر المحفظة أو الصور لفتح المتجر؛ تُحمّل في الخلفية بعد ظهور الصفحة.
+    Promise.allSettled([loadSettings(), loadCategories()]).finally(closeSplash);
+    loadWalletPill();
+    // حد أقصى قصير يمنع بقاء شاشة البداية عند بطء الشبكة أو استيقاظ الخادم.
+    setTimeout(closeSplash, 650);
+  });
+</script>
+</body>
+</html>

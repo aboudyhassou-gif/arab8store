@@ -1,0 +1,19 @@
+{
+  "name": "arab-store-whatsapp-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "موصل واتساب (Baileys) لبوت المتجر — يربط جهاز ويمرر الرسائل إلى متجر ARAB على Vercel",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.7.16",
+    "pino": "^9.4.0"
+  }
+}

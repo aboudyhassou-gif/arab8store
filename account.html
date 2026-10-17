@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>إعدادات الحساب | ARAB STORE</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/site-icon">
+<link rel="apple-touch-icon" href="/site-icon">
+<meta name="theme-color" content="#e63946">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css?v=28">
+</head>
+<body>
+
+<div id="drawer" class="drawer">
+  <div class="drawer-user">
+    <div class="drawer-avatar"><i class="fa-solid fa-user"></i></div>
+    <div id="drawerUserName" class="drawer-user-name">زائر</div>
+    <div id="drawerUserEmail" class="drawer-user-email"></div>
+    <div id="drawerAuthButtons" style="display:flex; flex-direction:column;"><button class="drawer-btn primary" onclick="goLogin(event)"><i class="fa-solid fa-right-to-bracket"></i> تسجيل دخول</button></div>
+    <div id="logoutBox" style="display:none; margin-top:8px;"><button class="drawer-btn ghost" onclick="logoutUser(event)"><i class="fa-solid fa-right-from-bracket"></i> تسجيل خروج</button></div>
+  </div>
+  <div class="guest-hide">
+    <div class="drawer-group-label">رئيسي</div>
+    <a href="/store.html" class="drawer-item"><i class="fa-solid fa-house"></i> الرئيسية</a>
+    <a href="/orders.html" class="drawer-item"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
+    <a href="/wallet.html" class="drawer-item"><i class="fa-solid fa-wallet"></i> المحفظة</a>
+    <a href="/activity.html" class="drawer-item"><i class="fa-solid fa-clock-rotate-left"></i> سجل العمليات</a>
+    <a href="/deposit.html" class="drawer-item"><i class="fa-solid fa-credit-card"></i> إيداع رصيد</a>
+  </div>
+  <div id="ownerAdminMenuItem" style="display:none;">
+    <div class="drawer-group-label">الإدارة</div>
+    <a href="/admin.html" class="drawer-item"><i class="fa-solid fa-user-shield"></i> لوحة الأدمن</a>
+  </div>
+
+  <div class="toggle-row"><button onclick="toggleTheme()"><i class="fa-solid fa-moon"></i> الوضع الليلي</button></div>
+  <div class="drawer-footer"><img src="assets/dev-logo.png" alt="" class="dev-logo" onerror="this.style.display='none'"><div style="margin-top:6px;">برمجة وتصميم</div><a href="https://t.me/aboudy2312" target="_blank"><i class="fa-brands fa-telegram"></i> @aboudy2312</a><div style="margin-top:4px;">2026</div></div>
+</div>
+<div id="overlay" class="overlay" onclick="toggleDrawer(false)"></div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="left-group">
+      <div class="menu-btn" onclick="toggleDrawer(true)"><span></span><span></span><span></span></div>
+      <div class="logo"><div class="logo-word">ARAB <b>STORE</b></div></div>
+    </div>
+    <div class="user-box">
+      <div class="icon-btn" id="notifBellBtn"><i class="fa-solid fa-bell"></i><span class="badge-dot" id="notifBadge" style="display:none;">0</span></div>
+      <div class="balance-pill"><i class="fa-solid fa-coins"></i><span id="balancePillValue">$0.00</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-head">
+    <h1><i class="fa-solid fa-gear" style="color:var(--accent)"></i> إعدادات الحساب</h1>
+    <p>تعديل بيانات حسابك الشخصي</p>
+  </div>
+
+  <!-- بطاقة الملف الشخصي + شارة الرتبة -->
+  <div class="panel" style="background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:20px 16px; margin-bottom:12px; text-align:center;">
+    <div class="drawer-avatar" style="margin:0 auto 10px;"><i class="fa-solid fa-user"></i></div>
+    <div style="font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; gap:7px; flex-wrap:wrap;">
+      <span id="profileTierBadge" class="badge-vip" style="display:none;"><i class="fa-solid fa-crown"></i> <span id="profileTierName"></span></span>
+      <span id="profileName">—</span>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:4px;" id="profileEmail">—</div>
+    <div id="profileDiscountNote" class="field-hint" style="display:none; margin-top:8px; color:var(--success);"></div>
+  </div>
+
+  <div class="panel" style="background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; margin-bottom:12px;">
+    <div style="font-size:13px; font-weight:800; margin-bottom:10px;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent); margin-left:6px;"></i> سجل العمليات</div>
+    <div style="font-size:11.5px; color:var(--muted); margin-bottom:10px;">كل الطلبات وتغييرات الرصيد وإشعارات النظام مع الوقت والحالة.</div>
+    <button class="btn btn-primary" onclick="location.href='/activity.html'"><i class="fa-solid fa-list-check"></i> فتح سجل العمليات</button>
+  </div>
+
+  <!-- إشعارات الهاتف — تصل حتى بعد إغلاق الموقع -->
+  <div class="panel" style="background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; margin-bottom:12px;">
+    <div style="font-size:13px; font-weight:800; margin-bottom:6px;"><i class="fa-solid fa-bell" style="color:var(--accent); margin-left:6px;"></i> إشعارات الهاتف 🔔</div>
+    <div id="pushStatusLine" style="font-size:11.5px; color:var(--muted); margin-bottom:10px;">يصلك تنبيه فوري عند: منتج جديد، عودة منتج، عروض، وقبول طلباتك — حتى والموقع مغلق.</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-primary" style="width:auto; padding:10px 18px;" onclick="enablePushUI()"><i class="fa-solid fa-bell"></i> تفعيل الإشعارات</button>
+      <button class="btn" style="width:auto; padding:10px 18px; background:var(--card-soft); border:1px solid var(--border); color:var(--text);" onclick="disablePushUI()">إيقاف</button>
+    </div>
+  </div>
+
+  <!-- معلومات الحساب -->
+  <div class="panel" style="background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; margin-bottom:12px;">
+    <div style="font-size:13px; font-weight:800; margin-bottom:14px;"><i class="fa-solid fa-user" style="color:var(--accent); margin-left:6px;"></i> المعلومات الشخصية</div>
+    <div class="field">
+      <label>الاسم الكامل</label>
+      <div class="input-wrap"><input type="text" id="accName"><i class="fa-solid fa-user"></i></div>
+    </div>
+    <div class="field mt-10">
+      <label>البريد الإلكتروني</label>
+      <div class="input-wrap"><input type="email" id="accEmail"><i class="fa-solid fa-envelope"></i></div>
+    </div>
+    <div class="field-error" id="errProfile"></div>
+    <button class="btn btn-primary mt-10" onclick="saveProfile()"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button>
+  </div>
+
+  <!-- تغيير كلمة المرور -->
+  <div class="panel" style="background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; margin-bottom:12px;">
+    <div style="font-size:13px; font-weight:800; margin-bottom:14px;"><i class="fa-solid fa-coins" style="color:var(--accent); margin-left:6px;"></i> عملة الشراء</div>
+    <div class="field"><label>اختر العملة التي تظهر وتُعتمد عند الشراء</label><select id="accCurrency" style="width:100%;padding:11px;border-radius:11px;border:1px solid var(--border);background:var(--card-soft);color:var(--text);"><option value="USD">دولار أمريكي (USD)</option><option value="SYP">ليرة سورية (SYP)</option></select></div>
+    <button class="btn btn-primary mt-10" onclick="saveCurrency()"><i class="fa-solid fa-floppy-disk"></i> حفظ العملة</button>
+  </div>
+
+  <!-- تغيير كلمة المرور -->
+  <div class="panel" style="background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; margin-bottom:12px;">
+    <div style="font-size:13px; font-weight:800; margin-bottom:14px;"><i class="fa-solid fa-lock" style="color:var(--accent); margin-left:6px;"></i> تغيير كلمة المرور</div>
+    <div class="field">
+      <label>كلمة المرور الحالية</label>
+      <div class="input-wrap"><input type="password" id="accOldPw" placeholder="••••••••"><i class="fa-solid fa-lock"></i><button type="button" class="toggle-eye" onclick="togglePw('accOldPw',this)"><i class="fa-solid fa-eye"></i></button></div>
+    </div>
+    <div class="field mt-10">
+      <label>كلمة المرور الجديدة</label>
+      <div class="input-wrap"><input type="password" id="accNewPw" placeholder="6 أحرف على الأقل"><i class="fa-solid fa-lock"></i><button type="button" class="toggle-eye" onclick="togglePw('accNewPw',this)"><i class="fa-solid fa-eye"></i></button></div>
+    </div>
+    <div class="field-error" id="errPassword"></div>
+    <button class="btn btn-primary mt-10" onclick="savePassword()"><i class="fa-solid fa-shield-halved"></i> تغيير كلمة المرور</button>
+  </div>
+
+  <div style="margin-bottom:80px;"></div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-items">
+    <a href="/store.html" class="nav-item"><i class="fa-solid fa-house"></i><span>الرئيسية</span></a>
+    <a href="/wallet.html" class="nav-item"><i class="fa-solid fa-wallet"></i><span>المحفظة</span></a>
+    <a href="/deposit.html" class="nav-item"><i class="fa-solid fa-credit-card"></i><span data-ar="إيداع" data-en="Deposit">إيداع</span></a>
+    <a href="/orders.html" class="nav-item"><i class="fa-solid fa-bag-shopping"></i><span>طلباتي</span></a>
+  </div>
+</div>
+
+<script src="js/app.js?v=13"></script>
+<script>
+  async function enablePushUI(){
+    if(!("Notification" in window)){ toast("متصفحك لا يدعم الإشعارات", "error"); return; }
+    if(Notification.permission === "denied"){ toast("الإشعارات محظورة من إعدادات المتصفح — اسمح بها أولاً", "error"); return; }
+    if(Notification.permission === "default"){ try{ await Notification.requestPermission(); }catch(e){} }
+    const ok = await enableWebPush();
+    if(ok){ toast("تم تفعيل الإشعارات ✅ ستصلك حتى بعد إغلاق الموقع"); refreshPushStatusLine(); }
+    else toast("تعذّر التفعيل — اسمح بالإشعارات وحاول مجدداً", "error");
+  }
+
+  async function disablePushUI(){
+    try{
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = await reg?.pushManager.getSubscription();
+      if(sub){
+        try{ await apiFetch("/push/unsubscribe", { method:"POST", body: JSON.stringify({ endpoint: sub.endpoint }) }); }catch(e){}
+        await sub.unsubscribe();
+      }
+      localStorage.removeItem("pushSubscribed");
+      toast("تم إيقاف الإشعارات");
+      refreshPushStatusLine();
+    }catch(err){ toast("تعذّر الإيقاف", "error"); }
+  }
+
+  async function refreshPushStatusLine(){
+    const el = document.getElementById("pushStatusLine");
+    if(!el) return;
+    try{
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = await reg?.pushManager.getSubscription();
+      el.innerHTML = sub
+        ? "✅ <b style='color:var(--success);'>الإشعارات مفعّلة</b> — ستصلك التنبيهات حتى بعد إغلاق الموقع."
+        : "يصلك تنبيه فوري عند: منتج جديد، عودة منتج، عروض، وقبول طلباتك — حتى والموقع مغلق.";
+    }catch(e){}
+  }
+  function togglePw(id,btn){ const i=document.getElementById(id),ic=btn.querySelector("i"); i.type=i.type==="password"?"text":"password"; ic.className=i.type==="text"?"fa-solid fa-eye-slash":"fa-solid fa-eye"; }
+
+  async function loadProfile(){
+    if(!Store.token()){ toast("سجّل دخولك أولاً","error"); setTimeout(()=>location.href="/login.html",700); return; }
+    try{
+      const d = await apiFetch("/auth/me");
+      const u = d.user;
+      document.getElementById("accName").value = u.name || "";
+      document.getElementById("accEmail").value = u.email || "";
+      document.getElementById("profileName").textContent = u.name || "";
+      document.getElementById("profileEmail").textContent = u.email || "";
+      document.getElementById("accCurrency").value = u.preferred_currency || "USD";
+      if(u.discount_tier_name){
+        document.getElementById("profileTierBadge").style.display = "inline-flex";
+        document.getElementById("profileTierName").textContent = u.discount_tier_name;
+        if(u.discount_percent > 0){
+          document.getElementById("profileDiscountNote").style.display = "block";
+          document.getElementById("profileDiscountNote").innerHTML = `<i class="fa-solid fa-tag"></i> تتمتع بخصم ${u.discount_percent}% على كل مشترياتك`;
+        }
+      }
+    }catch(err){ toast("تعذّر تحميل بيانات الحساب","error"); }
+  }
+
+  async function saveProfile(){
+    const name = document.getElementById("accName").value.trim();
+    const email = document.getElementById("accEmail").value.trim();
+    const errEl = document.getElementById("errProfile");
+    errEl.style.display="none";
+    if(!name || !email){ errEl.textContent="الاسم والبريد مطلوبين"; errEl.style.display="block"; return; }
+    try{
+      await apiFetch("/auth/update-profile", { method:"POST", body: JSON.stringify({ name, email }) });
+      const user = Store.user() || {};
+      Store.setUser(Object.assign(user, { name, email }));
+      toast("✅ تم حفظ التعديلات");
+      renderAuthState();
+    }catch(err){ errEl.textContent = err.message; errEl.style.display="block"; }
+  }
+
+  async function savePassword(){
+    const old_password = document.getElementById("accOldPw").value;
+    const new_password = document.getElementById("accNewPw").value;
+    const errEl = document.getElementById("errPassword");
+    errEl.style.display="none";
+    if(!old_password || new_password.length < 6){ errEl.textContent="تأكد من كلمة المرور الحالية والجديدة (6+ أحرف)"; errEl.style.display="block"; return; }
+    try{
+      await apiFetch("/auth/change-password", { method:"POST", body: JSON.stringify({ old_password, new_password }) });
+      toast("✅ تم تغيير كلمة المرور");
+      document.getElementById("accOldPw").value="";
+      document.getElementById("accNewPw").value="";
+    }catch(err){ errEl.textContent = err.message; errEl.style.display="block"; }
+  }
+
+  async function saveCurrency(){
+    const currency = document.getElementById("accCurrency").value;
+    try{
+      await Currency.save(currency);
+      const user = Store.user() || {};
+      Store.setUser(Object.assign(user, { preferred_currency: currency }));
+      renderAuthState();
+      toast("✅ تم حفظ عملة الشراء");
+    }catch(err){ toast(err.message, "error"); }
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{ loadProfile(); refreshPushStatusLine(); });
+</script>
+</body>
+</html>
