@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS reset_codes(email TEXT PRIMARY KEY,code TEXT,created_
 CREATE TABLE IF NOT EXISTS blob_files(name TEXT PRIMARY KEY,data TEXT,mime TEXT);
 CREATE TABLE IF NOT EXISTS wa_kv(k TEXT PRIMARY KEY,v TEXT,updated_at TEXT);
 CREATE TABLE IF NOT EXISTS wa_messages(id INTEGER PRIMARY KEY AUTOINCREMENT,direction TEXT,number TEXT,name TEXT,body TEXT,reply TEXT,created_at TEXT);
+CREATE TABLE IF NOT EXISTS wa_humans(number TEXT PRIMARY KEY,name TEXT,first_msg TEXT,created_at TEXT,done INTEGER DEFAULT 0);
 """
 SCHEMA_PG = SCHEMA_SQLITE.replace("AUTOINCREMENT", "").replace(
     "INTEGER PRIMARY KEY", "SERIAL PRIMARY KEY")
@@ -1462,6 +1463,29 @@ def create_app():
             wa_log_msg("in", number, name, text, greet)
             wa_log_msg("out", number, name, greet, "")
             return jsonify({"ok": True, "reply": greet})
+        # طلب التحدث مع المالك/الإدارة: توجيه + إيقاف البوت لهذا الزبون حتى ينهي المالك المحادثة
+        OWNER_SIGS = ("المالك", "مالك", "المدير", "مدير", "صاحب الرقم", "صاحب المتجر", "الادارة", "الإدارة",
+                      "الاداري", "الإداري", "بدي اكلم", "بدي اتكلم", "بدى اكلم", "بدى اتكلم",
+                      "ابغي اكلم", "ابغى اتكلم", "ابدى اكلم", "ابدى اتكلم", "بشري", "موظف",
+                      "تواصل مع", "اتصل بي")
+        hum = q(f"SELECT number,done FROM wa_humans WHERE number={PH}", (str(number),), one=True)
+        if hum and not hum.get("done"):
+            wa_log_msg("in", number, name, text, "")
+            notify_admin("💬 رسالة زبون موجه للمالك", f"{name or 'زبون'} ({number}): {text[:300]}")
+            return jsonify({"ok": True, "reply": ""})
+        want_owner = bool(low and (any(s in low for s in OWNER_SIGS) or any(s in text for s in OWNER_SIGS)))
+        if want_owner:
+            fwd = get_setting("wa_owner_forward_msg", "") or "✅ تم توجيه رسالتك إلى المالك، سيتم الرد عليك قريباً 🙏"
+            if not hum:
+                try:
+                    w(f"INSERT INTO wa_humans(number,name,first_msg,created_at,done) VALUES({PH},{PH},{PH},{PH},0)",
+                      (str(number), str(name), text[:500], NOW()))
+                except Exception:
+                    pass
+            wa_log_msg("in", number, name, text, "")
+            wa_log_msg("out", number, name, "", fwd)
+            notify_admin("🔔 طلب تحدث مع المالك", f"{name or 'زبون'} ({number}): {text[:300]}")
+            return jsonify({"ok": True, "reply": fwd})
         hist = d.get("history") if isinstance(d.get("history"), list) else None
         reply, cards = wa_ai_reply(text, hist)
         wa_log_msg("in", number, name, text, reply)
@@ -3136,6 +3160,27 @@ def create_app():
             return e
         w("DELETE FROM wa_messages")
         return jsonify({"message": "تم الحذف"})
+
+    @app.get("/api/admin/whatsapp/humans")
+    def adm_wa_humans():
+        t, e = require_admin()
+        if e:
+            return e
+        rows = q("SELECT number,name,first_msg,created_at AS date FROM wa_humans WHERE done=0 ORDER BY created_at DESC")
+        return jsonify({"items": rows})
+
+    @app.post("/api/admin/whatsapp/humans/close")
+    def adm_wa_humans_close():
+        t, e = require_admin()
+        if e:
+            return e
+        d = request.get_json(force=True, silent=True) or {}
+        num = str(d.get("number") or "")
+        if not num:
+            return err("رقم غير صحيح")
+        w(f"UPDATE wa_humans SET done=1 WHERE number={PH}", (num,))
+        add_activity(0, "wa", "info", f"إنهاء توجيه محادثة واتساب: {num}", "", "admin")
+        return jsonify({"message": "تم إنهاء التوجيه، البوت سيرد له مجدداً"})
 
     @app.get("/api/admin/search")
     def adm_search():

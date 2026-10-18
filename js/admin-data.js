@@ -827,14 +827,26 @@ async function loadWhatsAppMessages(){
   const body = document.getElementById("waMsgTableBody");
   if(!body) return;
   try{
-    const data = await adminFetch("/admin/whatsapp/messages");
-    document.getElementById("waMsgCount").textContent = (data.total || 0) + " رسالة";
+    const [data, hum] = await Promise.all([
+      adminFetch("/admin/whatsapp/messages"),
+      adminFetch("/admin/whatsapp/humans").catch(()=>({items:[]}))
+    ]);
+    const openHum = new Set((hum.items || []).map(h=>String(h.number||"")));
+    document.getElementById("waMsgCount").textContent = (data.total || 0) + " رسالة" + (openHum.size ? ` • 🔔 ${openHum.size} توجيه للمالك نشط` : "");
     body.innerHTML = (data.items || []).map(m=>{
       const dir = m.direction === "in" ? "⬅️ وارد" : "➡️ صادر";
       const txt = (m.direction === "in" ? (m.body||"") : (m.body||""));
-      return `<tr><td>${fmtWaDate(m.date)}</td><td>${dir}</td><td style="direction:ltr;">${m.number||""}</td><td style="white-space:pre-line; max-width:420px;">${(txt||"").replace(/</g,"&lt;")}</td></tr>`;
-    }).join("") || `<tr><td colspan="4">لا توجد رسائل بعد</td></tr>`;
-  }catch(err){ body.innerHTML = `<tr><td colspan="4">${err.message}</td></tr>`; }
+      const num = String(m.number||"");
+      const act = openHum.has(num)
+        ? `<button class="btn-sm" onclick="closeWaHuman('${num}')">✅ إنهاء التوجيه</button>`
+        : "—";
+      return `<tr><td>${fmtWaDate(m.date)}</td><td>${dir}</td><td style="direction:ltr;">${num}</td><td style="white-space:pre-line; max-width:420px;">${(txt||"").replace(/</g,"&lt;")}</td><td>${act}</td></tr>`;
+    }).join("") || `<tr><td colspan="5">لا توجد رسائل بعد</td></tr>`;
+  }catch(err){ body.innerHTML = `<tr><td colspan="5">${err.message}</td></tr>`; }
+}
+async function closeWaHuman(num){
+  try{ const r = await adminFetch("/admin/whatsapp/humans/close", { method:"POST", body:{ number:num } }); toast(r.message); loadWhatsAppMessages(); }
+  catch(err){ toast(err.message, "error"); }
 }
 async function clearWhatsAppMessages(){
   if(!confirm("مسح سجل محادثات واتساب؟")) return;
