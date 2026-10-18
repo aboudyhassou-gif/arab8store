@@ -944,6 +944,33 @@ def create_app():
         notify_user(u["id"], "تم استلام طلبك", f"طلبك #{oid} قيد التنفيذ", "info")
         notify_admin("طلب جديد", f"{u.get('name')} طلب {s['name']} x{qty}")
         log(u["email"], "order", str(oid), s["name"])
+        if s.get("provider_id"):
+            try:
+                prov = q(f"SELECT * FROM providers WHERE id={PH}", (s["provider_id"],), one=True)
+                if prov and (prov.get("url") or ""):
+                    info, pmsg = provider_call(prov, "order", {"product": s.get("api_product_id"),
+                                                               "api_product": s.get("api_product_id"),
+                                                               "product_key": s.get("api_product_id"),
+                                                               "product_name": s.get("name"),
+                                                               "player_id": player, "qty": qty,
+                                                               "order_id": oid, "buyer_ref": f"AS-{oid}"})
+                    if info:
+                        ext = str(info.get("order_id") or info.get("id") or "")
+                        pcost = None
+                        try:
+                            pcost = float(info.get("price") or 0) or None
+                        except Exception:
+                            pcost = None
+                        if pcost:
+                            w(f"UPDATE orders SET cost_usd={PH} WHERE id={PH}", (round(pcost, 4), oid))
+                        w(f"UPDATE orders SET source='api',ext_order_id={PH},raw_status='pending' WHERE id={PH}", (ext, oid))
+                        add_activity(u["id"], "order", "pending", f"تنفيذ تلقائي #{oid}", ext, "api", None, f"#{oid}")
+                        log("system", "order-autoapi", str(oid), f"{prov.get('name')} {ext}")
+                        notify_user(u["id"], "تم إرسال طلبك للمزود", f"طلبك #{oid} قيد الشحن تلقائياً", "info")
+                    else:
+                        notify_admin("فشل تنفيذ تلقائي", f"طلب #{oid} ({s['name']}) لم يُنفذ عبر المزود وسيُدار يدوياً: {str(pmsg)[:160]}")
+            except Exception as tex:
+                log("system", "order-autoapi-err", str(oid), str(tex)[:200])
         return jsonify({"message": "تم إرسال طلبك بنجاح", "order_id": oid})
 
     @app.get("/api/orders")
@@ -974,6 +1001,14 @@ def create_app():
             replies = json.loads(r.get("replies") or "[]")
         except Exception:
             replies = []
+        if r.get("source") == "api" and r.get("status") == "pending" and r.get("ext_order_id"):
+            try:
+                _, status, sync_reps = api_sync_order(r, u["id"])
+                if sync_reps:
+                    replies = sync_reps
+                r = q(f"SELECT * FROM orders WHERE id={PH} AND user_id={PH}", (oid, u["id"]), one=True) or r
+            except Exception:
+                pass
         return jsonify({"id": r["id"], "ext_order_id": r.get("ext_order_id") or "",
                         "track": r.get("track") or f"TRK-{r['id']}", "product_name": r.get("product_name") or "",
                         "category_name": r.get("category_name") or "", "qty": r.get("qty") or 1,
@@ -981,6 +1016,29 @@ def create_app():
                         "player_id": r.get("player_id") or "", "raw_status": r.get("raw_status") or r.get("status"),
                         "status": r.get("status"), "source": r.get("source") or "manual",
                         "response_time_text": r.get("response_time_text") or "", "reply_items": replies})
+
+    def api_sync_order(r, user_id):
+        """جلب حالة طلب api من المزود وتطبيق التسليم أو الاسترداد تلقائياً."""
+        changed = False
+        fin, rep, raw = provider_order_status(r)
+        if raw and raw != (r.get("raw_status") or ""):
+            w(f"UPDATE orders SET raw_status={PH} WHERE id={PH}", (raw, r["id"]))
+            changed = True
+        if fin == "accepted":
+            w(f"UPDATE orders SET status='accepted',raw_status={PH} WHERE id={PH}", (raw, r["id"]))
+            notify_user(user_id, "تم شحن طلبك", f"طلبك #{r['id']} تم تنفيذه", "success")
+            add_activity(user_id, "order", "accepted", f"شحن #{r['id']}", r.get("ext_order_id") or "", "api", None, f"#{r['id']}")
+            log("system", "order-api-done", str(r["id"]), raw or "")
+            return True, "accepted", rep or []
+        if fin == "rejected":
+            w(f"UPDATE orders SET status='rejected',raw_status={PH} WHERE id={PH}", (raw, r["id"]))
+            w(f"UPDATE users SET balance_usd=balance_usd+{PH} WHERE id={PH}", (float(r.get("price_usd") or 0), user_id))
+            notify_user(user_id, "فشل تنفيذ طلبك", f"طلبك #{r['id']} لم يكتمل وتمت إعادة رصيدك", "warning")
+            add_activity(user_id, "order", "rejected", f"فشل #{r['id']}", r.get("ext_order_id") or "", "api", None, f"#{r['id']}")
+            log("system", "order-api-rej", str(r["id"]), (raw or "") + " (رصيد مست)"
+                if isinstance(raw, str) else "rejected")
+            return True, "rejected", rep or []
+        return changed, r.get("status"), rep or []
 
     @app.get("/api/orders/<int:oid>/refresh")
     def order_refresh(oid):
@@ -990,26 +1048,39 @@ def create_app():
         r = q(f"SELECT * FROM orders WHERE id={PH} AND user_id={PH}", (oid, u["id"]), one=True)
         if not r:
             return err("الطلب غير موجود", 404)
-        changed, status, replies = False, r.get("status"), []
         try:
             replies = json.loads(r.get("replies") or "[]")
         except Exception:
             replies = []
+        changed, status = False, r.get("status")
         if r.get("source") == "api" and r.get("status") == "pending" and r.get("ext_order_id"):
-            fin, rep, raw = provider_order_status(r)
-            replies = rep or replies
-            if raw and raw != r.get("raw_status"):
-                w(f"UPDATE orders SET raw_status={PH} WHERE id={PH}", (raw, oid))
-                changed = True
-            if fin == "accepted":
-                w(f"UPDATE orders SET status='accepted',raw_status={PH} WHERE id={PH}", (raw, oid))
-                status, changed = "accepted", True
-                notify_user(u["id"], "تم شحن طلبك", f"طلبك #{oid} تم تنفيذه", "success")
-            elif fin == "rejected":
-                w(f"UPDATE orders SET status='rejected',raw_status={PH} WHERE id={PH}", (raw, oid))
-                w(f"UPDATE users SET balance_usd=balance_usd+{PH} WHERE id={PH}", (float(r.get("price_usd") or 0), u["id"]))
-                status, changed = "rejected", True
+            changed, status, sp = api_sync_order(r, u["id"])
+            if sp:
+                replies = sp
         return jsonify({"changed": changed, "status": status, "reply_items": replies})
+
+    @app.post("/api/admin/orders/refresh-api")
+    def adm_refresh_api():
+        t, e = require_admin()
+        if e:
+            return e
+        rows = q("SELECT * FROM orders WHERE source='api' AND status='pending' AND COALESCE(ext_order_id,'')<>'' ORDER BY id ASC LIMIT 40")
+        done = {"checked": 0, "accepted": 0, "rejected": 0, "changed": 0}
+        for r in rows:
+            if not r.get("ext_order_id") or len(str(r.get("ext_order_id"))) < 3:
+                continue
+            done["checked"] += 1
+            try:
+                changed, status, _ = api_sync_order(r, r["user_id"])
+            except Exception:
+                continue
+            if status == "accepted":
+                done["accepted"] += 1
+            elif status == "rejected":
+                done["rejected"] += 1
+            if changed:
+                done["changed"] += 1
+        return jsonify({"message": "تم تحديث الطلبات API", **done})
 
     def prov_headers(prov, mode):
         h = {"Content-Type": "application/json", "User-Agent": "ARAB-STORE/1.0"}
@@ -1214,7 +1285,7 @@ def create_app():
             w(f"UPDATE orders SET replies={PH} WHERE id={PH}", (json.dumps(norm, ensure_ascii=False), order["id"]))
         if st in ("delivered", "completed", "complete", "accept", "accepted"):
             return "accepted", norm, st
-        if st in ("failed", "rejected", "cancelled", "canceled"):
+        if st in ("failed", "reject", "refunded", "rejected", "cancelled", "canceled"):
             return "rejected", norm, st
         return None, norm, st
 
