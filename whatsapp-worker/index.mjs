@@ -84,6 +84,23 @@ function readCredsDir() {
   return out;
 }
 
+/* Baileys يختار المسار حسب creds.me: بدون me → generateRegistrationNode (مسار الربط ✅)
+   وبه presence me → generateLoginNode (مسار الدخول) ← يفشل 401 لأننا لسنا مسجّلين.
+   لذلك نحذف me/pairingCode قبل كل اتصال وإحنا غير مسجّلين، ونعيد إعدادهما عبر requestPairingCode. */
+function prepPairingCreds() {
+  try {
+    const p = path.join(CREDS_DIR, "creds.json");
+    const c = JSON.parse(fs.readFileSync(p, "utf8"));
+    if (c.registered) return;
+    if (c.me || c.pairingCode) {
+      delete c.me;
+      delete c.pairingCode;
+      fs.writeFileSync(p, JSON.stringify(c));
+      log("🧹 أزلت me/pairingCode غير المسجّلة لاستخدام مسار الربط في كل اتصال");
+    }
+  } catch {}
+}
+
 let saveTimer = null;
 async function pushCreds() {
   const creds = readCredsDir();
@@ -136,6 +153,7 @@ function extractText(msg) {
 
 /* ---------- تشغيل الاتصال ---------- */
 async function startSock() {
+  prepPairingCreds();
   const { state, saveCreds } = await useMultiFileAuthState(CREDS_DIR);
   const { version } = await fetchLatestBaileysVersion();
   startedAt = Date.now();
@@ -214,23 +232,58 @@ async function startSock() {
     }
   });
 
-  /* إذا طُلب الربط ولم يكن مسجّل الدخول → اطلب كود الربط */
+  /* إذا طُلب الربط ولم يكن مسجّل الدخول → اطلب كود الربط (مرة واحدة فقط) */
   if (!state.creds.registered) {
-    const boot = await api("/wa/bootstrap");
-    if (boot.pair_requested && boot.phone) {
-      wantPair = true;
-      await requestPair(boot.phone);
-    } else {
+    const got = await maybeRequestPair(true);
+    if (!got) {
       log("⏳ الجهاز غير مرتبط. بانتظار طلب الربط من لوحة الأدمن…");
-      await postStatus({ linked: false, error: "" });
+      await postStatus({ linked: false });
     }
   }
 
   return sock;
 }
 
+let pairInFlight = false;
+async function maybeRequestPair(resend = false) {
+  if (!sock || pairInFlight) return "";
+  if (sock.authState?.creds?.registered) return "";
+  let st;
+  try {
+    st = await api("/wa/status");
+  } catch {
+    return "";
+  }
+  if (!st.pair_requested || !st.phone) return "";
+  const existing = (st.status && st.status.code) || "";
+  if (existing) {
+    // كود صادر مسبقاً: نبقيه كما هو، ونعيد إرساله على السوكت الجديد حتى يبقى حيّاً
+    if (resend) await resendPair(st.phone, existing);
+    return existing;
+  }
+  return await requestPair(st.phone);
+}
+
+async function resendPair(phone, code) {
+  if (pairInFlight || Date.now() - lastPairAt < 8000) return "";
+  pairInFlight = true;
+  try {
+    await delay(2500);
+    lastPairAt = Date.now();
+    const c = await sock.requestPairingCode(phone, code);
+    log("🔁 أعدت إرسال كود الربط:", c);
+    return c;
+  } catch (e) {
+    log("⚠️ إعادة إرسال الكود فشلت:", e.message);
+    return "";
+  } finally {
+    pairInFlight = false;
+  }
+}
+
 async function requestPair(phone) {
   if (Date.now() - lastPairAt < 30000) return ""; // لا تكرر الكود بسرعة
+  pairInFlight = true;
   try {
     await delay(3000);
     lastPairAt = Date.now();
@@ -242,6 +295,8 @@ async function requestPair(phone) {
     log("❌ فشل طلب كود الربط:", e.message);
     await postStatus({ error: "فشل توليد كود الربط: " + e.message });
     return "";
+  } finally {
+    pairInFlight = false;
   }
 }
 
@@ -262,10 +317,10 @@ async function heartbeat() {
     const cfgV = String(st.cfg_version || "");
     if (cfgV !== lastCfg) lastCfg = cfgV;
 
-    if (st.pair_requested && st.phone && !sock?.authState?.creds?.registered && !wantPair) {
-      wantPair = true;
-      if (!sock) await startSock();
-      else await requestPair(st.phone);
+    if (!sock) {
+      if (st.pair_requested && st.phone) await startSock();
+    } else if (!sock.authState?.creds?.registered) {
+      await maybeRequestPair();
     }
   } catch (e) {
     log("⚠️ heartbeat:", e.message);
