@@ -20,7 +20,7 @@ import makeWASocket, {
   Browsers,
   makeCacheableSignalKeyStore,
   delay,
-} from "@whiskeysockets/baileys";
+} from "./vendor/baileys/lib/index.js";
 import P from "pino";
 import fs from "node:fs";
 import path from "node:path";
@@ -170,6 +170,8 @@ async function startSock() {
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
     markOnlineOnConnect: true,
+    // ابقِ نافذة الربط مفتوحة أطول: 6 مراجع × 120 ثانية ≈ 12 دقيقة بدل 2:40
+    qrTimeout: 120000,
   });
 
   sock.ev.on("creds.update", async () => {
@@ -320,7 +322,9 @@ async function heartbeat() {
     if (!sock) {
       if (st.pair_requested && st.phone) await startSock();
     } else if (!sock.authState?.creds?.registered) {
-      await maybeRequestPair();
+      // الافتراضي: لا تنشيط دوري (منع rate-overlimit) — التنشيط فقط عند إعادة الاتصال
+      const rehelloMs = process.env.WA_REHELLO_MS ? +process.env.WA_REHELLO_MS : 0;
+      await maybeRequestPair(rehelloMs > 0 && Date.now() - lastPairAt > rehelloMs);
     }
   } catch (e) {
     log("⚠️ heartbeat:", e.message);
