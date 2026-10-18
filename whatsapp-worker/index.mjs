@@ -215,11 +215,13 @@ async function startSock() {
       try {
         if (!msg.message || msg.key.fromMe) continue;
         const jid = msg.key.remoteJid || "";
-        if (!jid.endsWith("@s.whatsapp.net")) continue; // تجاهل المجموعات
         const text = extractText(msg);
+        log("📩 وارد (كل الأنواع) jid=" + jid, "fromMe=" + msg.key.fromMe, ":", (text || "").slice(0, 60));
+        if (!jid.endsWith("@s.whatsapp.net")) continue; // تجاهل المجموعات
         if (!text) continue;
         const number = jid.split("@")[0];
         const name = msg.pushName || "";
+        await postStatus({ last_in_number: number, last_in_name: name, last_in_text: text.slice(0, 200) }).catch(() => {});
         log("📩 وارد من", number, ":", text.slice(0, 80));
         const r = await api("/wa/incoming", { method: "POST", body: { number, name, text } });
         const reply = (r && r.reply) || "";
