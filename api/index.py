@@ -1487,6 +1487,19 @@ def create_app():
             notify_admin("🔔 طلب تحدث مع المالك", f"{name or 'زبون'} ({number}): {text[:300]}")
             return jsonify({"ok": True, "reply": fwd})
         hist = d.get("history") if isinstance(d.get("history"), list) else None
+        if not hist:
+            try:
+                prev = q(f"SELECT direction,body,reply FROM wa_messages WHERE number={PH} ORDER BY id DESC LIMIT 14",
+                         (str(number),))
+                hist = []
+                for r in reversed(prev):
+                    if r.get("direction") == "in" and r.get("body"):
+                        hist.append({"role": "user", "content": str(r["body"])[:800]})
+                    elif r.get("direction") == "out" and r.get("body"):
+                        hist.append({"role": "assistant", "content": str(r["body"])[:800]})
+                hist = hist[-8:] or None
+            except Exception:
+                hist = None
         reply, cards = wa_ai_reply(text, hist)
         wa_log_msg("in", number, name, text, reply)
         wa_log_msg("out", number, name, reply, "")
