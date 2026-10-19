@@ -706,7 +706,6 @@ function buildInvoiceCanvas(o){
     { k: 'رقم التتبع', v: o.track || '-' },
     { sep: 1 },
     { k: 'السعر', v: '$' + (+(o.price_usd || 0)).toFixed(2) + (o.price_syp ? '  /  ' + (+(o.price_syp)).toLocaleString() + ' ل.س' : ''), vb: 1 },
-    { k: 'التكلفة', v: (o.cost_usd ? ('$' + (+o.cost_usd).toFixed(2) + ' — ربح $' + ((+(o.price_usd || 0)) - (+o.cost_usd)).toFixed(2)) : '-') },
     { sep: 0 }
   ].filter(r => r.sep || (r.v && r.v !== '-'));
   let H = 14 + 4;
