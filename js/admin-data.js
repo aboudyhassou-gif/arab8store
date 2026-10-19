@@ -664,56 +664,130 @@ async function btWrite(bytes){
     await new Promise(r => setTimeout(r, 22));
   }
 }
-function invRows(o){
-  const d = (o.date || o.created_at || '').replace('T', ' ');
-  return [
-    { t: 'ARAB STORE', s: 22, b: 1, a: 'c' },
-    { t: 'arab8store.vercel.app', s: 13, a: 'c' },
-    { t: 'ــــــــــــــــــــــــ', s: 14, a: 'c' },
-    { t: 'فاتورة طلب رقم: ' + (o.ref || ('S' + o.id)), s: 17, b: 1 },
-    { t: 'المنتج: ' + (o.product_name || ''), s: 15 },
-    { t: 'الكمية: ' + (o.qty || 1), s: 15 },
-    { t: 'اللاعب: ' + (o.player_id || '-'), s: 15 },
-    { t: 'التاريخ: ' + d, s: 15 },
-    { t: 'الحالة: ' + (STATUS_LABEL[o.status] || o.status || ''), s: 15 },
-    { t: 'المبلغ: $' + (+(o.price_usd || 0)).toFixed(2), s: 15, b: 1 },
-    { t: o.sku ? ('SKU: ' + o.sku) : '', s: 12 },
-    { t: 'ــــــــــــــــــــــــ', s: 14, a: 'c' },
-    { t: 'شكراً لتعاملكم معنا', s: 15, a: 'c' }
-  ].filter(r => r.t);
+const LOGO_IMG = new Image();
+try { LOGO_IMG.src = '/assets/arab-store-logo.png'; } catch(_) {}
+function invDate(o){
+  try { return new Date(o.date || o.created_at).toLocaleString('en-GB', {
+    timeZone:'Asia/Damascus', hour12:false,
+    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  } catch(_) { return String(o.date || o.created_at || ''); }
+}
+function wrapText(ctx, text, max){
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = []; let cur = '';
+  for (const w of words){
+    const t = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(t).width <= max) cur = t;
+    else { if (cur) lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
+function dashedLine(ctx, y, W, m){
+  ctx.save();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 1.4; ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(m, y); ctx.lineTo(W - m, y); ctx.stroke();
+  ctx.restore();
 }
 function buildInvoiceCanvas(o){
-  const W = 384, PAD = 12, LH = 1.45;
+  const W = 384, M = 12, LH = 1.5;
+  const ref = o.ref || ('S' + o.id);
+  const price = '$' + (+(o.price_usd || 0)).toFixed(2);
   const probe = document.createElement('canvas').getContext('2d');
-  const rows = invRows(o).map(r => { r.lines = []; return r; });
-  let H = PAD + 18;
-  for (const r of rows) {
-    probe.font = (r.b ? 'bold ' : '') + r.s + 'px Tahoma, sans-serif';
-    let cur = '';
-    for (const w of String(r.t).split(' ')) {
-      const t = cur ? cur + ' ' + w : w;
-      if (probe.measureText(t).width <= W - PAD * 2) cur = t;
-      else { if (cur) r.lines.push(cur); cur = w; }
-    }
-    if (cur) r.lines.push(cur);
-    H += r.lines.length * (r.s * LH + 6);
+  // تمرير القياس أولاً ثم الرسم (لا تتغير الأبعاد بين التمريرين)
+  const meta = { rows: [], W, M };
+  let H = M + 4;
+  if (LOGO_IMG.complete && LOGO_IMG.naturalWidth > 0) H += 58 + 8;
+  const hTitle = 26, hUrl = 16;
+  H += hTitle + hUrl;
+  const labelFont = 'bold 12px Tahoma, sans-serif';
+  const valueFont = '14px Tahoma, sans-serif';
+  probe.font = labelFont;
+  const free = W - M * 2;
+  for (const r of [
+      { k: 'فاتورة رقم', v: '#' + ref, vb: 1 },
+      { k: 'المنتج',   v: o.product_name || '-' },
+      { k: 'رقم اللاعب', v: o.player_id || '-' },
+      { k: 'الكمية',   v: o.qty || 1 },
+      { k: 'التاريخ',  v: invDate(o) },
+      { k: 'الحالة',   v: (STATUS_LABEL[o.status] || o.status || '-') },
+      { k: 'الرمز',    v: o.sku || '' }
+    ].filter(r => r.v)){
+    let labelW = probe.measureText(r.k).width;
+    const typeFont = (r.vb ? 'bold ' : '') + valueFont.slice(4);
+    if (typeFont.indexOf('bold') === 0) probe.font = typeFont;
+    try { probe.font = (r.vb ? 'bold ' : '') + valueFont.slice(4); } catch(_) {}
+    const vLabelW = probe.measureText(r.k).width;
+    labelW = Math.max(labelW, vLabelW);
+    const valueW = free - labelW - 16;
+    probe.font = (r.vb ? 'bold ' : '') + valueFont;
+    const lines = wrapText(probe, r.v, valueW);
+    meta.rows.push({ ...r, labelW, valueW, lines, valueFont: (r.vb ? 'bold ' : '') + valueFont });
+    H += Math.max(22, lines.length * 22);
   }
-  H += PAD;
+  H += 10 + 2;              // فاصل
+  H += 34;                  // شريط الإجمالي
+  H += 12 + 2;              // فاصل
+  H += 24 + 20;             // خاتمة
+  H += 26;                  // هوامش سفلية
+  H = Math.ceil(H / 4) * 4;
   const cvs = document.createElement('canvas');
-  cvs.width = W; cvs.height = Math.ceil(H / 8) * 8;
+  cvs.width = W; cvs.height = H;
   const ctx = cvs.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, cvs.height);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#000'; ctx.textBaseline = 'top';
-  let y = PAD + 6;
-  for (const r of rows) {
-    ctx.font = (r.b ? 'bold ' : '') + r.s + 'px Tahoma, sans-serif';
-    for (const ln of r.lines) {
-      const wpx = ctx.measureText(ln).width;
-      const x = r.a === 'c' ? (W - wpx) / 2 : W - PAD - wpx;
-      ctx.fillText(ln, x, y);
-      y += r.s * LH + 6;
-    }
+  let y = M + 2;
+  if (LOGO_IMG.complete && LOGO_IMG.naturalWidth > 0){
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, 70);
+    const lw = 300, lh = 56;
+    const ratio = Math.min(lw / LOGO_IMG.naturalWidth, lh / LOGO_IMG.naturalHeight);
+    const dw = LOGO_IMG.naturalWidth * ratio, dh = LOGO_IMG.naturalHeight * ratio;
+    ctx.drawImage(LOGO_IMG, (W - dw) / 2, y, dw, dh);
+    y += dh + 8;
   }
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 22px Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ARAB STORE', W / 2, y);
+  y += hTitle;
+  ctx.font = '12px Tahoma, sans-serif';
+  ctx.fillText((o.store_url || 'arab8store.vercel.app'), W / 2, y);
+  y += hUrl - 2;
+  ctx.textAlign = 'right';
+  dashedLine(ctx, y, W, M); y += 12;
+  const drawRow = (r) => {
+    ctx.font = 'bold 12px Tahoma, sans-serif';
+    const ly = y + 3;
+    ctx.fillText(r.k, W - M, ly);
+    ctx.font = r.valueFont;
+    ctx.textAlign = 'right';
+    let lx = W - M - r.labelW - 20;
+    for (const ln of r.lines){
+      const w = ctx.measureText(ln).width;
+      ctx.fillText(ln, lx, ly);
+      ctx.textAlign = 'right';
+      lx -= 0;
+      ly += 22;
+    }
+    y = Math.max(y, (r.lines.length > 1 ? ly - 22 + 2 : y + 22));
+  };
+  for (const r of meta.rows) drawRow(r);
+  dashedLine(ctx, y, W, M); y += 14;
+  // شريط الإجمالي أبيض على أسود
+  ctx.fillStyle = '#000'; ctx.fillRect(M, y, W - M * 2, 30);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 17px Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('الإجمالي: ' + price + '  ' + ('(و ' + (+(o.price_syp || 0)).toLocaleString() + ' ل.س)'), W / 2, y + 6);
+  y += 30;
+  ctx.fillStyle = '#000';
+  dashedLine(ctx, y, W, M); y += 14;
+  ctx.font = 'bold 15px Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('شكراً لتعاملكم معنا', W / 2, y);
+  y += 24;
+  ctx.font = '11px Tahoma, sans-serif';
+  ctx.fillText('تابع طلبك من الموقع بالرقم #' + ref, W / 2, y);
   return cvs;
 }
 function escRaster(cvs){
