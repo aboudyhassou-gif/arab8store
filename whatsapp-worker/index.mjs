@@ -227,6 +227,14 @@ async function startSock() {
         log("📩 وارد من", number, ":", text.slice(0, 80));
         const r = await api("/wa/incoming", { method: "POST", body: { number, name, text } });
         const reply = (r && r.reply) || "";
+        if (r && r.notify_owner) {
+          const OWN = (process.env.WA_OWNER_NUMBER || "96181302718");
+          const ownJid = OWN + "@s.whatsapp.net";
+          try {
+            await sock.sendMessage(ownJid, { text: r.notify_owner });
+            log("🔔 إشعار المالك →", OWN);
+          } catch (e) { log("⚠️ إشعار المالك فشل:", e.message); }
+        }
         if (!reply || (r && r.disabled)) { log("⏭️ لا رد"); continue; }
         await sock.sendMessage(jid, { text: reply }, { quoted: msg }).catch(async () => {
           await sock.sendMessage(jid, { text: reply });
