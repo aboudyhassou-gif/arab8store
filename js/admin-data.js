@@ -646,7 +646,11 @@ async function btConnect(){
   const ch = all.find(c => /ae01|ffe1|ff02|2af1|fff2|8841|fa00/i.test(c.uuid))
     || all.find(c => c.properties.writeWithoutResponse)
     || all[0];
-  if (!ch) throw new Error('المطبعة عبارة عن بلوتوث كلاسيكي (SPP) فقط؛ لا يمكن الكتابة عبر BLE من المتصفح — استخدم تطبيق Fun Print');
+  if (!ch) {
+    const names = svcs.map(s => s.uuid.slice(4, 8)).join(', ') || '—';
+    BT.dbg = 'services=' + names + ' chars=' + all.length;
+    throw new Error('NUM_SERVICES=' + svcs.length + ' [' + names + '] — المطبعة لا تقبل كتابة BLE؛ أرسل هذا النص');
+  }
   BT.ch = ch; BT.connected = true;
   return BT;
 }
@@ -775,7 +779,9 @@ async function doBtPrint(ref){
     toast('تم إرسال الفاتورة للمطبعة 🖨️');
     closeInvoice();
   }catch(err){
-    toast(err.message || 'فشل الوصول للمطبعة', 'error');
+    const d = (typeof BT !== 'undefined' && BT.dbg) ? (' ' + BT.dbg) :
+      (BT.device ? (' name=' + (BT.device.name||'?')) : '');
+    toast((err.message || 'فشل الوصول للمطبعة') + d, 'error');
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = '🖨️ طباعة عبر Bluetooth'; }
   }
