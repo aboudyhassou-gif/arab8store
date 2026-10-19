@@ -749,7 +749,9 @@ function printOrderInvoice(ref){
       <h3 style="text-align:center;margin:0 0 8px;">🖨️ معاينة فاتورة #${o.ref||o.id}</h3>
       <div id="invPrev" style="overflow:auto;background:#111;padding:8px;border-radius:10px;flex:1;min-height:120px;"></div>
       <div style="font-size:11px;color:#8aa;margin-top:6px;">الوقت: ${rowText} — الطباعة تتم على ورق 58مم</div>
-      <button id="invPrintBtn" class="btn-sm primary" style="width:100%;margin-top:10px;" onclick="doBtPrint('${ref}')">🖨️ طباعة عبر Bluetooth</button>
+      <button id="invShareBtn" class="btn-sm primary" style="width:100%;margin-top:10px;" onclick="shareInvoice('${ref}')">📤 إرسال الفاتورة إلى Fun Print / واتساب …</button>
+      <button id="invSaveBtn" class="btn-sm" style="width:100%;margin-top:6px;" onclick="saveInvoiceImage('${ref}')">💾 حفظ الصورة في الجهاز (للطباعة من Fun Print)</button>
+      <button id="invPrintBtn" class="btn-sm" style="width:100%;margin-top:6px;" onclick="doBtPrint('${ref}')">🖨️ طباعة BLE مباشرة (للمطابع الذكية فقط)</button>
       <button class="btn-sm" style="width:100%;margin-top:6px;" onclick="btReconnect('${ref}')">🔄 إعادة اختيار الجهاز</button>
       <button class="btn-sm" style="width:100%;margin-top:6px;" onclick="closeInvoice()">إغلاق</button>
     </div>
@@ -785,6 +787,42 @@ async function doBtPrint(ref){
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = '🖨️ طباعة عبر Bluetooth'; }
   }
+}
+
+
+function invoiceAsBlob(ref){
+  const o = (allOrdersCache||[]).find(x=>(x.ref||('S'+x.id))===ref);
+  if(!o) return null;
+  const cvs = buildInvoiceCanvas(o);
+  return new Promise(res => cvs.toBlob(b => res(b ? {blob:b, o:o} : null), 'image/png'));
+}
+async function shareInvoice(ref){
+  try{
+    const r = await invoiceAsBlob(ref);
+    if(!r){ toast('الطلب غير موجود', 'error'); return; }
+    const file = new File([r.blob], ('invoice-' + (r.o.ref||r.o.id) + '.png'), {type:'image/png'});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:'فاتورة ' + (r.o.ref||r.o.id) });
+      toast('اختر Fun Print من القائمة ثم اضغط طباعة 🖨️');
+      closeInvoice();
+    } else { saveInvoiceImage(ref); }
+  }catch(e){
+    if(String(e||'').indexOf('Abort')>=0){ return; }
+    saveInvoiceImage(ref);
+  }
+}
+async function saveInvoiceImage(ref){
+  const r = await invoiceAsBlob(ref);
+  if(!r){ toast('الطلب غير موجود', 'error'); return; }
+  const file = new File([r.blob], ('invoice-' + (r.o.ref||r.o.id) + '.png'), {type:'image/png'});
+  try{
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.blob); a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    toast('حُفظت الصورة في التنزيلات — افتح Fun Print واخترها 🖨️');
+    closeInvoice();
+  }catch(e){ toast('تعذر الحفظ', 'error'); }
 }
 
 function closeInvoice(){ document.getElementById('invModal')?.remove(); }
