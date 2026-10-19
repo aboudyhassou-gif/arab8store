@@ -1449,7 +1449,7 @@ def create_app():
             return jsonify({"ok": True, "reply": "", "disabled": True})
         d = request.get_json(force=True, silent=True) or {}
         text = (d.get("text") or "").strip()[:2000]
-        number = d.get("number") or ""
+        number = d.get("number") or d.get("from") or ""
         name = d.get("name") or ""
         if not text:
             return jsonify({"ok": True, "reply": ""})
@@ -1476,50 +1476,38 @@ def create_app():
         NO_S = ("لا", "استمر", "أستمر", "استكمل", "امضي", "أمضي", "مضي", "ما بدت", "لا شكرا", " Stop", "self")
         if pending:
             wa_log_msg("in", number, name, text, "")
-            notify_admin("💬 رسالة زبون موجه للمالك", f"{name or 'زبون'} ({number}): {text[:300]}")
-            low2 = low
+            low2 = low.strip()
+            want_yes = (low2 in ("1", "نعم", "yes", "ok", "اوكي", "أوكي", "الرسمي", "الدعم", "الدعم الرسمي")) or (any(s in low2 for s in ("نعم", "الدعم الرسمي")) and len(low2) <= 30)
             want_no = any(s in low2 for s in NO_S) and (len(low2) <= 20)
+            if want_yes:
+                fwd = get_setting("wa_owner_forward_msg", "") or "✅ تم توجيه رسالتك إلى الدعم الرسمي، سيتم الرد عليك قريباً 🙏"
+                wa_log_msg("out", number, name, "", fwd)
+                notify_owner_msg = f"🔔 طلب دعم رسمي!\n👤 {name or 'زبون'}\n📱 {number}\n💬 {text[:200]}\n→ لوحة الأدمن: /admin.html"
+                notify_admin("💬 طلب تواصل مع المالك", f"{name} {number}: {text[:200]}")
+                return jsonify({"ok": True, "reply": fwd, "notify_owner": notify_owner_msg})
             if want_no:
                 w(f"DELETE FROM wa_humans WHERE number={PH}", (str(number),))
                 wa_log_msg("out", number, name, "", "تمام، نكمل مع المساعد 🤖 كيف بقدر ساعدك؟")
                 return jsonify({"ok": True, "reply": "تمام، نكمل مع المساعد 🤖 كيف بقدر ساعدك؟"})
+            notify_admin("💬 رسالة زبون موجه للمالك", f"{name or 'زبون'} ({number}): {text[:300]}")
             return jsonify({"ok": True, "reply": ""})
         want_owner = bool(low and (any(s in low for s in OWNER_SIGS) or any(s in text for s in OWNER_SIGS)))
         if want_owner:
-            ask = "هل تريدي التحدث مع الدعم الرسمي أو الاستمرار في التحدث معي؟ 🙂\n- اكتب (1) أو (نعم) للدعم الرسمي\n- اكتب (2) أو (لا) للاستمرار معي"
-            if not row:
+            ask = "هل تريد التحدث مع الدعم الرسمي أو الاستمرار في التحدث معي؟ 🙂\n- اكتب (1) أو (نعم) للدعم الرسمي\n- اكتب (2) أو (لا) للاستمرار معي"
+            if not row or row.get("done"):
                 try:
+                    w(f"DELETE FROM wa_humans WHERE number={PH}", (str(number),))
                     w(f"INSERT INTO wa_humans(number,name,first_msg,created_at,done,pending) VALUES({PH},{PH},{PH},{PH},0,1)",
                       (str(number), str(name), text[:500], NOW()))
                 except Exception:
                     pass
             else:
-                w(f"UPDATE wa_humans SET pending=1 WHERE number={PH} ", (str(number),))
+                w(f"UPDATE wa_humans SET pending=1 WHERE number={PH}", (str(number),))
             wa_log_msg("in", number, name, text, "")
             wa_log_msg("out", number, name, "", ask)
             return jsonify({"ok": True, "reply": ask})
-        if row and not row.get("done") and not row.get("pending"):
-            low2 = low.strip()
-            want_yes = any(low2 == x or low2.startswith(x) for x in ("1", "2")) or any(s in low2 for s in ("نعم", "ايوا", "الدعم", "الرسمي", "المالك")) or any(s in low2 for s in YES_S)
-            want_no = any(s in low2 for s in NO_S)
-            if want_yes:
-                w(f"UPDATE wa_humans SET pending=1 WHERE number={PH}", (str(number),))
-                fwd = get_setting("wa_owner_forward_msg", "") or "✅ تم توجيه رسالتك إلى الدعم الرسمي، سيتم الرد عليك قريباً 🙏"
-                wa_log_msg("in", number, name, text, "")
-                wa_log_msg("out", number, name, "", fwd)
-                notify_owner_msg = f"🔔 طلب دعم رسمي مباشر!\n" \
-                                   f"👤 {name or 'زبون'}\n" \
-                                   f"📱 رقم المتجر: {number}\n" \
-                                   f"💬 رسالته: {text[:200]}\n" \
-                                   f"→ استخدم لوحة الأدمن لعرض/الرد"
-                return jsonify({"ok": True, "reply": fwd, "notify_owner": notify_owner_msg})
-            if want_no:
-                w(f"DELETE FROM wa_humans WHERE number={PH}", (str(number),))
-                wa_log_msg("in", number, name, text, "")
-                wa_log_msg("out", number, name, "", "تمام، نكمل مع المساعد 🤖 كيف بقدر ساعدك؟")
-                return jsonify({"ok": True, "reply": "تمام، نكمل مع المساعد 🤖 كيف بقدر ساعدك؟"})
-            else:
-                w(f"DELETE FROM wa_humans WHERE number={PH}", (str(number),))
+        if row and not row.get("done") and row.get("pending"):
+            w(f"DELETE FROM wa_humans WHERE number={PH}", (str(number),))
         hist = d.get("history") if isinstance(d.get("history"), list) else None
         if not hist:
             try:
