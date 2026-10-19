@@ -1617,6 +1617,35 @@ def create_app():
                          "ref": f"S{r['id']}", "track": r.get("track") or "", "source": r.get("source") or "manual",
                          "player_id": r.get("player_id") or "", "provider_order": r.get("ext_order_id") or ""} for r in rows])
 
+    @app.get("/api/admin/orders/<ref>/full")
+    def adm_order_full(ref):
+        t, e = require_admin()
+        if e:
+            return e
+        oid = int(ref[1:]) if ref.startswith("S") and ref[1:].isdigit() else (int(ref) if ref.isdigit() else None)
+        if not oid:
+            return err("طلب غير صالح")
+        o = q(f"SELECT o.*,u.name AS uname,u.email AS uemail,u.phone AS uphone FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.id={PH}", (oid,), one=True)
+        if not o:
+            return err("الطلب غير موجود", 404)
+        prov = ""
+        sku = None
+        if o.get("sku_id"):
+            sku = q(f"SELECT name,public_id,api_product_id,provider_id FROM skus WHERE id={PH}", (o["sku_id"],), one=True) or {}
+            if sku.get("provider_id"):
+                pv = q(f"SELECT name FROM providers WHERE id={PH}", (sku["provider_id"],), one=True) or {}
+                prov = pv.get("name") or ""
+        return jsonify({
+            "id": o["id"], "ref": f"S{o['id']}", "date": o.get("created_at") or "", "status": o.get("status"),
+            "source": (o.get("source") or "manual"), "sku": (sku or {}).get("public_id") or (sku or {}).get("name") or "",
+            "provider_order": o.get("ext_order_id") or "", "provider_name": prov, "track": o.get("track") or "",
+            "user_name": o.get("uname") or "", "user_email": o.get("uemail") or "", "user_phone": o.get("uphone") or "",
+            "player_id": o.get("player_id") or "", "product_name": o.get("product_name") or "",
+            "category_name": o.get("category_name") or "", "qty": o.get("qty") or 1,
+            "currency": o.get("currency") or "USD", "price_usd": float(o.get("price_usd") or 0),
+            "price_syp": float(o.get("price_syp") or 0), "cost_usd": float(o.get("cost_usd") or 0),
+        })
+
     @app.post("/api/admin/orders/<ref>/status")
     def adm_order_status(ref):
         t, e = require_admin()

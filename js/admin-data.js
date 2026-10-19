@@ -620,22 +620,17 @@ const PT_SVDS = [
   'e7810a71-73ae-499d-8c15-faa916ef0a92',
   '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
 ];
+window.addEventListener('error', (e) => {
+  try { toast('خطأ: ' + (e.message || 'غير معروف'), 'error'); } catch (_) {}
+});
 const BT = { device: null, ch: null, connected: false };
-async function btRequestDevice(){
-  if (!navigator.bluetooth) throw new Error('Web Bluetooth غير مدعوم — افتح اللوحة في Chrome أندرويد');
-  try {
-    BT.device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: PT_SVDS });
-  } catch (e) {
-    if (e && /user|selected/i.test(e.message || '')) throw e;
-    throw e;
-  }
-  BT.device.addEventListener('gattserverdisconnected', () => { BT.connected = false; BT.ch = null; });
-  return BT.device;
-}
+/* ====== الموصل (BLE) ====== */
 async function btConnect(){
   if (BT.connected && BT.ch) return BT;
-  await btRequestDevice();
-  try { await BT.device.gatt.connect(); } catch (e) { throw new Error('فشل الاتصال بالمطبعة: ' + (e.message || '')); }
+  if (!navigator.bluetooth) throw new Error('Web Bluetooth غير مدعوم — افتح اللوحة في Chrome أندرويد');
+  BT.device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: PT_SVDS });
+  BT.device.addEventListener('gattserverdisconnected', () => { BT.connected = false; BT.ch = null; });
+  await BT.device.gatt.connect();
   const svcs = await BT.device.gatt.getPrimaryServices();
   const all = [];
   for (const s of svcs) {
@@ -643,14 +638,11 @@ async function btConnect(){
     try { cs = await s.getCharacteristics(); } catch (_) { continue; }
     for (const c of cs) if (c.properties && (c.properties.write || c.properties.writeWithoutResponse)) all.push(c);
   }
+  BT.dbg = 'services=' + svcs.map(s => s.uuid.slice(4, 8)).join(',');
   const ch = all.find(c => /ae01|ffe1|ff02|2af1|fff2|8841|fa00/i.test(c.uuid))
     || all.find(c => c.properties.writeWithoutResponse)
     || all[0];
-  if (!ch) {
-    const names = svcs.map(s => s.uuid.slice(4, 8)).join(', ') || '—';
-    BT.dbg = 'services=' + names + ' chars=' + all.length;
-    throw new Error('NUM_SERVICES=' + svcs.length + ' [' + names + '] — المطبعة لا تقبل كتابة BLE؛ أرسل هذا النص');
-  }
+  if (!ch) throw new Error('NO_WRITE ' + BT.dbg + ' — المطبعة كلاسيكية (SPP): استخدم زر الإرسال إلى Fun Print');
   BT.ch = ch; BT.connected = true;
   return BT;
 }
@@ -664,15 +656,16 @@ async function btWrite(bytes){
     await new Promise(r => setTimeout(r, 22));
   }
 }
-const LOGO_IMG = new Image();
-try { LOGO_IMG.src = '/assets/arab-store-logo.png'; } catch(_) {}
-function invDate(o){
-  try { return new Date(o.date || o.created_at).toLocaleString('en-GB', {
-    timeZone:'Asia/Damascus', hour12:false,
-    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  } catch(_) { return String(o.date || o.created_at || ''); }
+/* ====== رسم الفاتورة (384px — 58mm) ====== */
+const INV_LOGO = new Image();
+try { INV_LOGO.src = '/assets/arab-store-logo.png'; } catch (_) {}
+function invDate(d){
+  try { return new Date(d).toLocaleString('en-GB', {
+    timeZone: 'Asia/Damascus', hour12: false,
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch (_) { return String(d || ''); }
 }
-function wrapText(ctx, text, max){
+function invWrap(ctx, text, max){
   const words = String(text || '').split(/\s+/).filter(Boolean);
   const lines = []; let cur = '';
   for (const w of words){
@@ -683,112 +676,179 @@ function wrapText(ctx, text, max){
   if (cur) lines.push(cur);
   return lines.length ? lines : [''];
 }
-function dashedLine(ctx, y, W, m){
-  ctx.save();
-  ctx.strokeStyle = '#000'; ctx.lineWidth = 1.4; ctx.setLineDash([4, 3]);
-  ctx.beginPath(); ctx.moveTo(m, y); ctx.lineTo(W - m, y); ctx.stroke();
-  ctx.restore();
+function invDash(ctx, y, W, m){
+  ctx.save(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1.4; ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(m, y); ctx.lineTo(W - m, y); ctx.stroke(); ctx.restore();
 }
 function buildInvoiceCanvas(o){
-  const W = 384, M = 12, LH = 1.5;
-  const ref = o.ref || ('S' + o.id);
-  const price = '$' + (+(o.price_usd || 0)).toFixed(2);
+  const W = 384, M = 14, LH = 21;
   const probe = document.createElement('canvas').getContext('2d');
-  // تمرير القياس أولاً ثم الرسم (لا تتغير الأبعاد بين التمريرين)
-  const meta = { rows: [], W, M };
-  let H = M + 4;
-  if (LOGO_IMG.complete && LOGO_IMG.naturalWidth > 0) H += 58 + 8;
-  const hTitle = 26, hUrl = 16;
-  H += hTitle + hUrl;
-  const labelFont = 'bold 12px Tahoma, sans-serif';
-  const valueFont = '14px Tahoma, sans-serif';
-  probe.font = labelFont;
+  const labelF = 'bold 12px Tahoma, sans-serif';
+  const valF = '14px Tahoma, sans-serif';
+  const valB = 'bold 14px Tahoma, sans-serif';
+  const srcTxt = (o.source || 'manual') === 'api' ? ('API' + (o.provider_name ? ' — ' + o.provider_name : '')) : ' يدوي';
+  const stTxt = (typeof o.status !== 'undefined' && (STATUS_LABEL[o.status] || o.status)) || o.status || '';
+  const rows = [
+    { k: 'التاريخ', v: invDate(o.date) },
+    { k: 'رقم الطلب', v: '#' + (o.ref || ('S' + o.id)), vb: 1 },
+    { sep: 1 },
+    { k: 'المنتج', v: (o.product_name || '-') + (o.category_name ? ' • ' + o.category_name : '') },
+    { k: 'الرمز', v: o.sku || '-' },
+    { k: 'رقم اللاعب', v: o.player_id || '-' },
+    { k: 'الكمية', v: o.qty || 1 },
+    { sep: 1 },
+    { k: 'العميل', v: o.user_name || '-' },
+    { k: 'الهاتف', v: o.user_phone || '-' },
+    { k: 'البريد', v: o.user_email || '-' },
+    { sep: 1 },
+    { k: 'الحالة', v: stTxt + ' — ' + srcTxt },
+    { k: 'طلب المزود', v: o.provider_order || '-' },
+    { k: 'رقم التتبع', v: o.track || '-' },
+    { sep: 1 },
+    { k: 'السعر', v: '$' + (+(o.price_usd || 0)).toFixed(2) + (o.price_syp ? '  /  ' + (+(o.price_syp)).toLocaleString() + ' ل.س' : ''), vb: 1 },
+    { k: 'التكلفة', v: (o.cost_usd ? ('$' + (+o.cost_usd).toFixed(2) + ' — ربح $' + ((+(o.price_usd || 0)) - (+o.cost_usd)).toFixed(2)) : '-') },
+    { sep: 0 }
+  ].filter(r => r.sep || (r.v && r.v !== '-'));
+  let H = 14 + 4;
+  if (INV_LOGO.complete && INV_LOGO.naturalWidth > 0) H += 56 + 10;
+  H += 26 + 15;
   const free = W - M * 2;
-  for (const r of [
-      { k: 'فاتورة رقم', v: '#' + ref, vb: 1 },
-      { k: 'المنتج',   v: o.product_name || '-' },
-      { k: 'رقم اللاعب', v: o.player_id || '-' },
-      { k: 'الكمية',   v: o.qty || 1 },
-      { k: 'التاريخ',  v: invDate(o) },
-      { k: 'الحالة',   v: (STATUS_LABEL[o.status] || o.status || '-') },
-      { k: 'الرمز',    v: o.sku || '' }
-    ].filter(r => r.v)){
-    let labelW = probe.measureText(r.k).width;
-    const typeFont = (r.vb ? 'bold ' : '') + valueFont.slice(4);
-    if (typeFont.indexOf('bold') === 0) probe.font = typeFont;
-    try { probe.font = (r.vb ? 'bold ' : '') + valueFont.slice(4); } catch(_) {}
-    const vLabelW = probe.measureText(r.k).width;
-    labelW = Math.max(labelW, vLabelW);
-    const valueW = free - labelW - 16;
-    probe.font = (r.vb ? 'bold ' : '') + valueFont;
-    const lines = wrapText(probe, r.v, valueW);
-    meta.rows.push({ ...r, labelW, valueW, lines, valueFont: (r.vb ? 'bold ' : '') + valueFont });
-    H += Math.max(22, lines.length * 22);
+  let labelMax = 0;
+  probe.font = labelF;
+  for (const r of rows) if (!r.sep) labelMax = Math.max(labelMax, probe.measureText(r.k).width);
+  for (const r of rows){
+    if (r.sep){ H += 13; continue; }
+    probe.font = r.vb ? valB : valF;
+    const vw = free - labelMax - 24;
+    r.lines = invWrap(probe, r.v, Math.max(vw, 180));
+    H += r.lines.length * LH + 4;
   }
-  H += 10 + 2;              // فاصل
-  H += 34;                  // شريط الإجمالي
-  H += 12 + 2;              // فاصل
-  H += 24 + 20;             // خاتمة
-  H += 26;                  // هوامش سفلية
-  H = Math.ceil(H / 4) * 4;
+  H += 11 + 34 + 12 + 24 + 18;
+  H = Math.ceil(H / 8) * 8;
   const cvs = document.createElement('canvas');
   cvs.width = W; cvs.height = H;
   const ctx = cvs.getContext('2d');
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#000'; ctx.textBaseline = 'top';
-  let y = M + 2;
-  if (LOGO_IMG.complete && LOGO_IMG.naturalWidth > 0){
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, 70);
-    const lw = 300, lh = 56;
-    const ratio = Math.min(lw / LOGO_IMG.naturalWidth, lh / LOGO_IMG.naturalHeight);
-    const dw = LOGO_IMG.naturalWidth * ratio, dh = LOGO_IMG.naturalHeight * ratio;
-    ctx.drawImage(LOGO_IMG, (W - dw) / 2, y, dw, dh);
-    y += dh + 8;
+  let y = 16;
+  if (INV_LOGO.complete && INV_LOGO.naturalWidth > 0){
+    const ratio = Math.min(260 / INV_LOGO.naturalWidth, 54 / INV_LOGO.naturalHeight);
+    const dw = INV_LOGO.naturalWidth * ratio, dh = INV_LOGO.naturalHeight * ratio;
+    ctx.drawImage(INV_LOGO, (W - dw) / 2, y, dw, dh);
+    y += dh + 10;
   }
-  ctx.fillStyle = '#000';
-  ctx.font = 'bold 22px Tahoma, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('ARAB STORE', W / 2, y);
-  y += hTitle;
+  ctx.fillStyle = '#000'; ctx.textBaseline = 'top';
+  ctx.font = 'bold 22px Tahoma, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('ARAB STORE', W / 2, y); y += 26;
   ctx.font = '12px Tahoma, sans-serif';
-  ctx.fillText((o.store_url || 'arab8store.vercel.app'), W / 2, y);
-  y += hUrl - 2;
+  ctx.fillText('arab8store.vercel.app', W / 2, y); y += 15;
   ctx.textAlign = 'right';
-  dashedLine(ctx, y, W, M); y += 12;
-  const drawRow = (r) => {
-    ctx.font = 'bold 12px Tahoma, sans-serif';
+  invDash(ctx, y, W, M); y += 11;
+  for (const r of rows){
+    if (r.sep){ invDash(ctx, y, W, M); y += 13; continue; }
     const ly = y + 3;
+    ctx.fillStyle = '#000';
+    ctx.font = labelF; ctx.textAlign = 'right';
     ctx.fillText(r.k, W - M, ly);
-    ctx.font = r.valueFont;
+    ctx.font = r.vb ? valB : valF; ctx.textAlign = 'right';
+    let lx = W - M - r.k.length * 0;
     ctx.textAlign = 'right';
-    let lx = W - M - r.labelW - 20;
+    const vx = M + (ctx.measureText(r.lines[0]).width);
+    let vy = ly;
     for (const ln of r.lines){
-      const w = ctx.measureText(ln).width;
-      ctx.fillText(ln, lx, ly);
-      ctx.textAlign = 'right';
-      lx -= 0;
-      ly += 22;
+      const lw2 = ctx.measureText(ln).width;
+      ctx.fillText(ln, lx = M + lw2, vy);
+      vy += LH;
     }
-    y = Math.max(y, (r.lines.length > 1 ? ly - 22 + 2 : y + 22));
-  };
-  for (const r of meta.rows) drawRow(r);
-  dashedLine(ctx, y, W, M); y += 14;
-  // شريط الإجمالي أبيض على أسود
-  ctx.fillStyle = '#000'; ctx.fillRect(M, y, W - M * 2, 30);
+    y += r.lines.length * LH + 4;
+  }
+  invDash(ctx, y, W, M); y += 12;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(M, y, W - M * 2, 30);
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 17px Tahoma, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('الإجمالي: ' + price + '  ' + ('(و ' + (+(o.price_syp || 0)).toLocaleString() + ' ل.س)'), W / 2, y + 6);
+  ctx.font = 'bold 15px Tahoma, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('الإجمالي: $' + (+(o.price_usd || 0)).toFixed(2) + (o.price_syp ? '  |  ' + (+(o.price_syp)).toLocaleString() + ' ل.س' : ''), W / 2, y + 7);
   y += 30;
   ctx.fillStyle = '#000';
-  dashedLine(ctx, y, W, M); y += 14;
-  ctx.font = 'bold 15px Tahoma, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('شكراً لتعاملكم معنا', W / 2, y);
-  y += 24;
-  ctx.font = '11px Tahoma, sans-serif';
-  ctx.fillText('تابع طلبك من الموقع بالرقم #' + ref, W / 2, y);
+  invDash(ctx, y, W, M); y += 12;
+  ctx.font = 'bold 14px Tahoma, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('شكراً لتعاملكم معنا', W / 2, y); y += 24;
+  ctx.font = '10px Tahoma, sans-serif';
+  ctx.fillText('تابع طلبك من الموقع بالرقم #' + (o.ref || ('S' + o.id)), W / 2, y);
   return cvs;
+}
+/* ====== نافذة الفاتورة + إرسال ====== */
+const INV_ERR = (e) => toast((e && e.message) ? e.message : 'خطأ غير معروف', 'error');
+async function printOrderInvoice(ref){
+  try {
+    let o = (allOrdersCache || []).find(x => (x.ref || ('S' + x.id)) === ref) || null;
+    try {
+      const full = await adminFetch(`/admin/orders/${ref}/full`);
+      if (full && full.id) o = full;
+    } catch (_) {}
+    if (!o){ toast('الطلب غير موجود', 'error'); return; }
+    document.getElementById('invModal')?.remove();
+    const cvs = buildInvoiceCanvas(o);
+    const modal = `
+    <div id="invModal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;">
+      <div style="background:var(--panel);padding:18px;border-radius:14px;width:430px;max-width:94vw;max-height:92vh;display:flex;flex-direction:column;">
+        <h3 style="text-align:center;margin:0 0 8px;">🖨️ فاتورة #${o.ref || ('S' + o.id)}</h3>
+        <div id="invPrev" style="overflow:auto;background:#0e1420;padding:8px;border-radius:10px;"></div>
+        <div style="font-size:11px;color:#8aa;margin-top:6px;">ورق حراري 58مم — $${(+ (o.price_usd || 0)).toFixed(2)}</div>
+        <button id="invShareBtn" class="btn-sm primary" style="width:100%;margin-top:10px;" onclick="shareInvoice('${ref}')">📤 إرسال إلى Fun Print / واتساب …</button>
+        <button id="invSaveBtn" class="btn-sm" style="width:100%;margin-top:6px;" onclick="saveInvoiceImage('${ref}')">💾 حفظ الصورة (للإعداد في Fun Print)</button>
+        <button id="invPrintBtn" class="btn-sm" style="width:100%;margin-top:6px;" onclick="doBtPrint('${ref}')">🖨️ طباعة BLE مباشرة (مطابع ذكية فقط)</button>
+        <button class="btn-sm" style="width:100%;margin-top:6px;" onclick="closeInvoice()">إغلاق</button>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modal);
+    cvs.style.cssText = 'max-width:100%;height:auto;display:block;margin:auto;';
+    document.getElementById('invPrev').appendChild(cvs);
+  } catch (e) { INV_ERR(e); }
+}
+const invBlob = async (ref) => {
+  let o = (allOrdersCache || []).find(x => (x.ref || ('S' + x.id)) === ref) || null;
+  try { const f = await adminFetch(`/admin/orders/${ref}/full`); if (f && f.id) o = f; } catch (_) {}
+  if (!o) return null;
+  const cvs = buildInvoiceCanvas(o);
+  return new Promise(res => cvs.toBlob(b => res(b ? { blob: b, o } : null), 'image/png'));
+};
+async function shareInvoice(ref){
+  try {
+    const r = await invBlob(ref);
+    if (!r){ toast('الطلب غير موجود', 'error'); return; }
+    const file = new File([r.blob], 'invoice-' + (r.o.ref || r.o.id) + '.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file], title: 'فاتورة ' + (r.o.ref || r.o.id) });
+      toast('اختر Fun Print من القائمة ثم اضغط طباعة');
+      closeInvoice();
+    } else saveInvoiceImage(ref);
+  } catch (e) { if (/Abort/i.test(String(e))) return; INV_ERR(e); saveInvoiceImage(ref); }
+}
+async function saveInvoiceImage(ref){
+  try {
+    const r = await invBlob(ref);
+    if (!r){ toast('الطلب غير موجود', 'error'); return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(r.blob);
+    a.download = 'invoice-' + (r.o.ref || r.o.id) + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('حُفظت الصورة في التنزيلات — افتح Fun Print واخترها');
+    closeInvoice();
+  } catch (e) { INV_ERR(e); }
+}
+async function doBtPrint(ref){
+  const btn = document.getElementById('invPrintBtn');
+  try {
+    toast('جارِ الاتصال…');
+    await btConnect();
+    const o = (allOrdersCache || []).find(x => (x.ref || ('S' + x.id)) === ref);
+    if (!o) throw new Error('الطلب غير موجود');
+    const data = escRaster(buildInvoiceCanvas(o));
+    await btWrite(data);
+    toast('تم إرسال الفاتورة للمطبعة');
+    closeInvoice();
+  } catch (e) { INV_ERR(e); }
 }
 function escRaster(cvs){
   const ctx = cvs.getContext('2d');
@@ -809,95 +869,6 @@ function escRaster(cvs){
   return Uint8Array.from(out);
 }
 
-
-/* ===== نافذة الفاتورة + إرسال إلى المطبعة ===== */
-function printOrderInvoice(ref){
-  const o = (allOrdersCache||[]).find(x=>(x.ref||('S'+x.id))===ref);
-  if(!o){ toast('الطلب غير موجود', 'error'); return; }
-  document.getElementById('invModal')?.remove();
-  const cvs = buildInvoiceCanvas(o);
-  const rowText = (new Date().toLocaleString('en-GB', {timeZone:'Asia/Damascus', hour12:false}));
-  const modal = `
-  <div id="invModal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;">
-    <div style="background:var(--panel);padding:18px;border-radius:14px;width:420px;max-width:92vw;max-height:90vh;display:flex;flex-direction:column;">
-      <h3 style="text-align:center;margin:0 0 8px;">🖨️ معاينة فاتورة #${o.ref||o.id}</h3>
-      <div id="invPrev" style="overflow:auto;background:#111;padding:8px;border-radius:10px;flex:1;min-height:120px;"></div>
-      <div style="font-size:11px;color:#8aa;margin-top:6px;">الوقت: ${rowText} — الطباعة تتم على ورق 58مم</div>
-      <button id="invShareBtn" class="btn-sm primary" style="width:100%;margin-top:10px;" onclick="shareInvoice('${ref}')">📤 إرسال الفاتورة إلى Fun Print / واتساب …</button>
-      <button id="invSaveBtn" class="btn-sm" style="width:100%;margin-top:6px;" onclick="saveInvoiceImage('${ref}')">💾 حفظ الصورة في الجهاز (للطباعة من Fun Print)</button>
-      <button id="invPrintBtn" class="btn-sm" style="width:100%;margin-top:6px;" onclick="doBtPrint('${ref}')">🖨️ طباعة BLE مباشرة (للمطابع الذكية فقط)</button>
-      <button class="btn-sm" style="width:100%;margin-top:6px;" onclick="btReconnect('${ref}')">🔄 إعادة اختيار الجهاز</button>
-      <button class="btn-sm" style="width:100%;margin-top:6px;" onclick="closeInvoice()">إغلاق</button>
-    </div>
-  </div>`;
-  document.body.insertAdjacentHTML('beforeend', modal);
-  const st = cvs.style; st.maxWidth='100%'; st.height='auto'; st.display='block'; st.margin='auto';
-  document.getElementById('invPrev').appendChild(cvs);
-  BT.connected = false; BT.ch = null; BT.device = null;
-}
-async function btReconnect(ref){
-  BT.connected = false; BT.ch = null; BT.device = null;
-  toast('اختر المطبعات من القائمة');
-  doBtPrint(ref);
-}
-async function doBtPrint(ref){
-  const btn = document.getElementById('invPrintBtn');
-  try{
-    if(btn){ btn.disabled = true; btn.textContent = 'جارِ الاتصال…'; }
-    toast('جارِ الاتصال بالمطبعة…');
-    await btConnect();
-    if(btn){ btn.textContent = 'إرسال البيانات…'; }
-    const o = (allOrdersCache||[]).find(x=>(x.ref||('S'+x.id))===ref);
-    if(!o) throw new Error('الطلب غير موجود');
-    const cvs = buildInvoiceCanvas(o);
-    const data = escRaster(cvs);
-    await btWrite(data);
-    toast('تم إرسال الفاتورة للمطبعة 🖨️');
-    closeInvoice();
-  }catch(err){
-    const d = (typeof BT !== 'undefined' && BT.dbg) ? (' ' + BT.dbg) :
-      (BT.device ? (' name=' + (BT.device.name||'?')) : '');
-    toast((err.message || 'فشل الوصول للمطبعة') + d, 'error');
-  }finally{
-    if(btn){ btn.disabled = false; btn.textContent = '🖨️ طباعة عبر Bluetooth'; }
-  }
-}
-
-
-function invoiceAsBlob(ref){
-  const o = (allOrdersCache||[]).find(x=>(x.ref||('S'+x.id))===ref);
-  if(!o) return null;
-  const cvs = buildInvoiceCanvas(o);
-  return new Promise(res => cvs.toBlob(b => res(b ? {blob:b, o:o} : null), 'image/png'));
-}
-async function shareInvoice(ref){
-  try{
-    const r = await invoiceAsBlob(ref);
-    if(!r){ toast('الطلب غير موجود', 'error'); return; }
-    const file = new File([r.blob], ('invoice-' + (r.o.ref||r.o.id) + '.png'), {type:'image/png'});
-    if (navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({ files:[file], title:'فاتورة ' + (r.o.ref||r.o.id) });
-      toast('اختر Fun Print من القائمة ثم اضغط طباعة 🖨️');
-      closeInvoice();
-    } else { saveInvoiceImage(ref); }
-  }catch(e){
-    if(String(e||'').indexOf('Abort')>=0){ return; }
-    saveInvoiceImage(ref);
-  }
-}
-async function saveInvoiceImage(ref){
-  const r = await invoiceAsBlob(ref);
-  if(!r){ toast('الطلب غير موجود', 'error'); return; }
-  const file = new File([r.blob], ('invoice-' + (r.o.ref||r.o.id) + '.png'), {type:'image/png'});
-  try{
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(r.blob); a.download = file.name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
-    toast('حُفظت الصورة في التنزيلات — افتح Fun Print واخترها 🖨️');
-    closeInvoice();
-  }catch(e){ toast('تعذر الحفظ', 'error'); }
-}
 
 function closeInvoice(){ document.getElementById('invModal')?.remove(); }
 
