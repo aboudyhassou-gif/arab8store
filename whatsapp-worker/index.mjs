@@ -217,8 +217,10 @@ async function startSock() {
         const jid = msg.key.remoteJid || "";
         const text = extractText(msg);
         log("📩 وارد (كل الأنواع) jid=" + jid, "fromMe=" + msg.key.fromMe, ":", (text || "").slice(0, 60));
-        if (!jid.endsWith("@s.whatsapp.net")) continue; // تجاهل المجموعات
+        if (jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue; // تجاهل المجموعات والحالات
         if (!text) continue;
+        // WhatsApp 2025-2026 يرسل لدى بعض الحسابات بصيغة @lid بدل @s.whatsapp.net — نقبل الاثنين
+        if (!jid.endsWith("@s.whatsapp.net") && !jid.endsWith("@lid")) continue;
         const number = jid.split("@")[0];
         const name = msg.pushName || "";
         await postStatus({ last_in_number: number, last_in_name: name, last_in_text: text.slice(0, 200) }).catch(() => {});
