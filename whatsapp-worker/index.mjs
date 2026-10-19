@@ -152,6 +152,28 @@ function extractText(msg) {
 }
 
 /* ---------- تشغيل الاتصال ---------- */
+let starting = false;
+let lastOpenOk = 0;
+async function scheduleRestart(reason){
+  if (starting) return;
+  starting = true;
+  log("♻️ إعادة تشغيل الاتصال:", reason);
+  try { try { sock?.end?.(); } catch {} } catch {}
+  sock = null;
+  await delay(4500);
+  starting = false;
+}
+process.on("uncaughtException", (e) => {
+  const m = e?.message || String(e);
+  log("💥 uncaughtException:", m);
+  if (/Connection Closed|init queries|timed out|WebSocket closed|forbidden/i.test(m)) scheduleRestart(m);
+});
+process.on("unhandledRejection", (e) => {
+  const m = e?.message || String(e || "");
+  log("💥 unhandledRejection:", m);
+  if (/Connection Closed|init queries|timed out|WebSocket closed|forbidden/i.test(m)) scheduleRestart(m);
+});
+
 async function startSock() {
   prepPairingCreds();
   const { state, saveCreds } = await useMultiFileAuthState(CREDS_DIR);
@@ -188,6 +210,8 @@ async function startSock() {
     if (connection === "open") {
       const me = sock?.user?.id ? sock.user.id.split(":")[0].split("@")[0] : "";
       wantPair = false;
+      lastOpenOk = Date.now();
+      starting = false;
       try { await api("/wa/pair", { method: "POST", body: { done: true } }); } catch {}
       log("✅ تم الاتصال بواتساب. الرقم:", me);
       await postStatus({ linked: true, code: "", qr: "", me, platform: "android", error: "", since: "" });
@@ -332,11 +356,16 @@ async function heartbeat() {
     if (cfgV !== lastCfg) lastCfg = cfgV;
 
     if (!sock) {
-      if (st.pair_requested && st.phone) await startSock();
+      if (starting || Date.now() - lastOpenOk < 30000) { /* انتظر دورة الإعادة */ }
+      else await startSock().catch(() => {});
+      if (st.pair_requested && st.phone) await startSock().catch(() => {});
     } else if (!sock.authState?.creds?.registered) {
       // الافتراضي: لا تنشيط دوري (منع rate-overlimit) — التنشيط فقط عند إعادة الاتصال
       const rehelloMs = process.env.WA_REHELLO_MS ? +process.env.WA_REHELLO_MS : 0;
       await maybeRequestPair(rehelloMs > 0 && Date.now() - lastPairAt > rehelloMs);
+    } else if (Date.now() - lastOpenOk > 60000) {
+      // مراقبة الأعطال: مسجّل لكن لا اتصال مفتوح منذ 60 ثانية → إعادة الاتصال فوراً (24/24)
+      await scheduleRestart("watchdog");
     }
   } catch (e) {
     log("⚠️ heartbeat:", e.message);
